@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   FileSearch,
+  Info,
   LayoutDashboard,
   MessageSquareText,
   Route,
@@ -40,7 +41,10 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     heading: "system",
-    items: [{ href: "/settings", label: "Settings", Icon: Settings }],
+    items: [
+      { href: "/about", label: "About", Icon: Info },
+      { href: "/settings", label: "Settings", Icon: Settings },
+    ],
   },
 ];
 
@@ -102,13 +106,16 @@ function Wordmark() {
       href="/"
       className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
         <Route className="size-4" aria-hidden />
       </span>
-      <span className="leading-tight">
+      <span className="min-w-0 leading-tight">
         <span className="block text-sm font-semibold tracking-tight">ITARS</span>
-        <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-          Auto-Routing
+        <span
+          className="block text-[10.5px] font-medium leading-snug text-muted-foreground"
+          title="Intelligent Ticket Auto Routing System"
+        >
+          Intelligent Ticket Auto Routing System
         </span>
       </span>
     </Link>
@@ -127,7 +134,7 @@ export function AppSidebar() {
       <div className="border-t border-sidebar-border px-5 py-3">
         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
           <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-          v2.0 · phase 13
+          ITARS v2.0 · phase 13
         </div>
       </div>
     </aside>

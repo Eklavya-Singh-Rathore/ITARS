@@ -200,3 +200,83 @@
     animation: none;
   }
 }
+
+/* Architecture-flow animation (About page).
+   Each node pulses for ~1s out of a 6s loop, staggered by `--arch-node-delay`.
+   The connector below it lights up just after, producing a downward "flow". */
+@keyframes archNodePulse {
+  0%,
+  100% {
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border);
+  }
+  10%,
+  18% {
+    box-shadow:
+      0 0 0 4px color-mix(in oklch, var(--primary) 14%, transparent),
+      var(--shadow-md);
+    border-color: color-mix(in oklch, var(--primary) 55%, var(--border));
+  }
+}
+@keyframes archIconPulse {
+  0%,
+  100% {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  10%,
+  18% {
+    background: color-mix(in oklch, var(--primary) 14%, var(--card));
+    color: var(--foreground);
+  }
+}
+@keyframes archConnectorFlow {
+  0%,
+  100% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.arch-node {
+  animation: archNodePulse 6s ease-in-out infinite both;
+}
+.arch-node .arch-node-icon {
+  animation: archIconPulse 6s ease-in-out infinite both;
+  animation-delay: inherit;
+}
+.arch-connector-pulse {
+  display: block;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--primary),
+    transparent
+  );
+  animation: archConnectorFlow 6s ease-in-out infinite both;
+}
+.arch-connector {
+  /* delay is set inline on each connector; propagate it to the inner pulse */
+  --inherit-arch-conn-delay: var(--arch-conn-delay, 0s);
+}
+.arch-connector-pulse {
+  animation-delay: var(--inherit-arch-conn-delay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arch-node,
+  .arch-node .arch-node-icon,
+  .arch-connector-pulse {
+    animation: none;
+  }
+  .arch-connector-pulse {
+    opacity: 0;
+  }
+}

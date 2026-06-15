@@ -16,6 +16,7 @@ import {
   FeedbackEntry,
   FeedbackStats,
   HealthResponse,
+  LLMHealth,
   MetricsResponse,
   MonitoringSummary,
   RagResult,
@@ -134,6 +135,10 @@ export function getHealth(): Promise<HealthResponse> {
 
 export function getMetrics(): Promise<MetricsResponse> {
   return request("/metrics", MetricsResponse, { method: "GET" });
+}
+
+export function getLlmHealth(): Promise<LLMHealth> {
+  return request("/llm/health", LLMHealth, { method: "GET" });
 }
 
 // --- persistence (Phase 6) ---

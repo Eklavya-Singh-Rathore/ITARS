@@ -102,6 +102,18 @@ export const MetricsResponse = z.object({
 });
 export type MetricsResponse = z.infer<typeof MetricsResponse>;
 
+export const LLMProviderInfo = z.object({
+  model: z.string(),
+  available: z.boolean(),
+});
+export const LLMHealth = z.object({
+  primary: z.string(),
+  fallback: z.array(z.string()),
+  providers: z.record(z.string(), LLMProviderInfo),
+  budget: z.record(z.string(), z.unknown()),
+});
+export type LLMHealth = z.infer<typeof LLMHealth>;
+
 // --- persistence (Phase 6) ---
 export const RecentTicket = z.object({
   ticket_id: z.string(),

@@ -5,8 +5,6 @@ import { usePathname } from "next/navigation";
 import { Menu, Moon, Route, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import { getHealth } from "@/lib/api";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +21,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/app-sidebar";
+import { ServicesStatus } from "@/components/services-status";
 
 const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/": { title: "Dashboard", subtitle: "Routing health at a glance" },
@@ -42,56 +41,9 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
     title: "Feedback",
     subtitle: "Human corrections captured from review",
   },
+  "/about": { title: "About", subtitle: "Project overview and vision" },
   "/settings": { title: "Settings", subtitle: "Backend connection and appearance" },
 };
-
-type BackendState = "checking" | "online" | "offline";
-
-function useBackendHealth(intervalMs = 30_000): BackendState {
-  const [state, setState] = React.useState<BackendState>("checking");
-  React.useEffect(() => {
-    let cancelled = false;
-    const check = () =>
-      getHealth()
-        .then(() => !cancelled && setState("online"))
-        .catch(() => !cancelled && setState("offline"));
-    check();
-    const id = window.setInterval(check, intervalMs);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [intervalMs]);
-  return state;
-}
-
-function HealthIndicator() {
-  const state = useBackendHealth();
-  const styles: Record<BackendState, { dot: string; ring: string; label: string }> = {
-    checking: {
-      dot: "bg-muted-foreground/50",
-      ring: "",
-      label: "Checking",
-    },
-    online: {
-      dot: "bg-emerald-500",
-      ring: "shadow-[0_0_0_3px] shadow-emerald-500/15",
-      label: "Backend online",
-    },
-    offline: {
-      dot: "bg-red-500",
-      ring: "shadow-[0_0_0_3px] shadow-red-500/15",
-      label: "Backend offline",
-    },
-  };
-  const { dot, ring, label } = styles[state];
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full border bg-card/60 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-      <span className={cn("size-2 rounded-full", dot, ring)} aria-hidden />
-      {label}
-    </span>
-  );
-}
 
 function ThemeToggle() {
   const { setTheme } = useTheme();
@@ -165,7 +117,7 @@ export function Topbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <HealthIndicator />
+        <ServicesStatus />
         <ThemeToggle />
       </div>
     </header>
