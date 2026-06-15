@@ -127,6 +127,42 @@ for reviewers, and (e) a captured human-feedback loop that feeds retrieval back.
 
 ---
 
+## Model Performance
+
+The deterministic models are evaluated on a held-out 15% test split of the
+44,160-row Domain-A corpus. (V2 serves the same trained artifacts as V1 — no
+retraining — so these figures describe the deployed models.)
+
+| Task | Metric | Score |
+|---|---|---|
+| Multi-label tags | F1 micro (calibrated XGB) | **0.772** |
+| Multi-label tags | F1 macro | 0.535 |
+| Multi-label tags | Hamming loss | 0.053 |
+| Priority | Accuracy | **0.721** |
+| Priority | Macro F1 | 0.707 |
+| Duplicate detection | Precision / Recall / F1 | **0.982** / 0.66 / 0.789 |
+| FAISS retrieval | Speed-up vs exact search | 1.26× |
+
+> Note on retrieval Recall@5 (≈1.00): queries were sampled from the indexed
+> corpus, so this is near-tautological and is reported for transparency, not as
+> a headline number.
+
+| | |
+|---|---|
+| ![Tag classification F1](docs/assets/tag-classification-f1.png) | ![Priority per-class F1](docs/assets/priority-per-class-f1.png) |
+| Tag classification F1 across the threshold sweep | Priority per-class F1 |
+| ![Precision vs recall](docs/assets/precision-recall.png) | ![Duplicate detection performance](docs/assets/duplicate-detection-performance.png) |
+| Precision–recall trade-off | Duplicate-detection performance |
+
+![Confusion matrix](docs/assets/confusion-matrix.png)
+
+> **UI screenshots:** the live Next.js platform (analytics dashboard with the
+> override-flow Sankey, the analyze + review workspaces) is best viewed by
+> running the app locally (`npm run dev`) or on the deployed instance — add
+> captures here once deployed.
+
+---
+
 ## Setup
 
 ### Prerequisites
