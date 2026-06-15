@@ -1,0 +1,72 @@
+# ============================================================================
+# ITARS V2 — repository hygiene
+# main/ is the single source of truth; everything below is local-only.
+# ============================================================================
+
+# --- Secrets (NEVER commit) -------------------------------------------------
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# --- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.coverage
+htmlcov/
+
+# --- Runtime DB + recalibration backups -------------------------------------
+itars.db
+itars.db-journal
+*.sqlite
+*.sqlite3
+*.pkl.bak
+
+# --- Model artifacts (mounted at deploy; never baked in) --------------------
+Models/
+models/
+Datasets/
+*.pkl
+*.npy
+!tests/**/*.pkl
+hf_cache/
+
+# --- Qdrant local storage ---------------------------------------------------
+qdrant_storage/
+
+# --- Node / Next.js (frontend has its own .gitignore but belt-and-braces) ---
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+
+# --- OS / editor cruft ------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# --- Misc -------------------------------------------------------------------
+*.log
+*.bak
+*.tmp

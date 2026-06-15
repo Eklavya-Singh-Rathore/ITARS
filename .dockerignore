@@ -1,0 +1,25 @@
+# Build context hygiene — keep the backend image lean and secret-free.
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pkl.bak
+
+# Never ship secrets or the local SQLite DB.
+.env
+itars.db
+*.sqlite
+
+# Not needed in the backend image.
+frontend/
+tests/
+conftest.py
+scripts/
+*.md
+.gitignore
+.git/
+
+# Local model/data bundles are mounted as volumes, not copied.
+Models/
+Datasets/

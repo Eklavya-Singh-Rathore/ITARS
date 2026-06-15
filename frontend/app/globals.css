@@ -1,0 +1,202 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Tinted, layered elevation — shadows carry the cool slate hue of the surface,
+   never flat black. One consistent light source (top-down). */
+@theme {
+  --shadow-2xs: 0 1px 2px 0 oklch(0.21 0.04 264 / 0.05);
+  --shadow-xs: 0 1px 2px 0 oklch(0.21 0.04 264 / 0.06);
+  --shadow-sm: 0 1px 2px -1px oklch(0.21 0.04 264 / 0.09),
+    0 1px 3px 0 oklch(0.21 0.04 264 / 0.05);
+  --shadow:
+    0 1px 2px -1px oklch(0.21 0.04 264 / 0.09),
+    0 2px 6px -1px oklch(0.21 0.04 264 / 0.06);
+  --shadow-md:
+    0 2px 4px -2px oklch(0.21 0.04 264 / 0.08),
+    0 6px 16px -3px oklch(0.21 0.04 264 / 0.09);
+  --shadow-lg:
+    0 4px 8px -3px oklch(0.21 0.05 264 / 0.10),
+    0 14px 32px -8px oklch(0.21 0.05 264 / 0.12);
+  --shadow-xl: 0 18px 40px -12px oklch(0.21 0.05 264 / 0.18);
+}
+
+/* Light: near-white cool-slate surface, ink primary. Color is reserved for
+   status meaning, never the chrome. Grays carry one consistent cool hue (264). */
+:root {
+  --radius: 0.6rem;
+  --background: oklch(0.985 0.003 264);
+  --foreground: oklch(0.235 0.015 264);
+  --card: oklch(0.999 0.0015 264);
+  --card-foreground: oklch(0.235 0.015 264);
+  --popover: oklch(0.999 0.0015 264);
+  --popover-foreground: oklch(0.235 0.015 264);
+  --primary: oklch(0.28 0.022 264);
+  --primary-foreground: oklch(0.985 0.003 264);
+  --secondary: oklch(0.962 0.005 264);
+  --secondary-foreground: oklch(0.28 0.022 264);
+  --muted: oklch(0.962 0.005 264);
+  --muted-foreground: oklch(0.525 0.016 264);
+  --accent: oklch(0.95 0.008 264);
+  --accent-foreground: oklch(0.28 0.022 264);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.916 0.006 264);
+  --input: oklch(0.916 0.006 264);
+  --ring: oklch(0.55 0.03 264);
+  --chart-1: oklch(0.62 0.13 250);
+  --chart-2: oklch(0.66 0.12 160);
+  --chart-3: oklch(0.72 0.13 78);
+  --chart-4: oklch(0.62 0.17 28);
+  --chart-5: oklch(0.56 0.13 300);
+  --sidebar: oklch(0.972 0.004 264);
+  --sidebar-foreground: oklch(0.235 0.015 264);
+  --sidebar-primary: oklch(0.28 0.022 264);
+  --sidebar-primary-foreground: oklch(0.985 0.003 264);
+  --sidebar-accent: oklch(0.94 0.008 264);
+  --sidebar-accent-foreground: oklch(0.28 0.022 264);
+  --sidebar-border: oklch(0.912 0.006 264);
+  --sidebar-ring: oklch(0.55 0.03 264);
+}
+
+/* Dark: off-black cool charcoal (never #000), near-white ink primary. Cards
+   sit a touch lighter than the page to read as elevated surfaces. */
+.dark {
+  --background: oklch(0.175 0.012 264);
+  --foreground: oklch(0.955 0.004 264);
+  --card: oklch(0.213 0.014 264);
+  --card-foreground: oklch(0.955 0.004 264);
+  --popover: oklch(0.213 0.014 264);
+  --popover-foreground: oklch(0.955 0.004 264);
+  --primary: oklch(0.92 0.006 264);
+  --primary-foreground: oklch(0.213 0.014 264);
+  --secondary: oklch(0.272 0.015 264);
+  --secondary-foreground: oklch(0.955 0.004 264);
+  --muted: oklch(0.272 0.015 264);
+  --muted-foreground: oklch(0.715 0.013 264);
+  --accent: oklch(0.295 0.017 264);
+  --accent-foreground: oklch(0.955 0.004 264);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.58 0.03 264);
+  --chart-1: oklch(0.66 0.14 250);
+  --chart-2: oklch(0.7 0.13 160);
+  --chart-3: oklch(0.76 0.14 78);
+  --chart-4: oklch(0.66 0.18 28);
+  --chart-5: oklch(0.62 0.14 300);
+  --sidebar: oklch(0.155 0.012 264);
+  --sidebar-foreground: oklch(0.955 0.004 264);
+  --sidebar-primary: oklch(0.92 0.006 264);
+  --sidebar-primary-foreground: oklch(0.213 0.014 264);
+  --sidebar-accent: oklch(0.265 0.016 264);
+  --sidebar-accent-foreground: oklch(0.955 0.004 264);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.58 0.03 264);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    /* Tabular figures everywhere — this is a data interface; numbers must not
+       jitter as they update. */
+    font-variant-numeric: tabular-nums;
+    text-wrap: pretty;
+  }
+  /* Display type: tight tracking, balanced wrapping, no orphans. */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.014em;
+    text-wrap: balance;
+  }
+  ::selection {
+    background: oklch(0.55 0.03 264 / 0.22);
+  }
+}
+
+/* Fixed grain overlay to break digital flatness — pointer-events-none, sits
+   above the page background but below all content (which is z-10). */
+.app-noise {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* Staggered entry — subtle Y-translate + fade, respects reduced motion. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-rise {
+    animation: none;
+  }
+}

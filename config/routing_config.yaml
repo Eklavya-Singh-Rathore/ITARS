@@ -1,0 +1,42 @@
+# ITARS routing configuration (single source for tag->department + thresholds).
+# `authentication_issue` was removed: it is not among the 28 binarizer tags and was
+# flagged as a stale mapping by routing_label_policy.pkl (audit defect). The runtime
+# validator (validate_routing_label_mapping) also cleans any stale tag automatically.
+# Regenerate the data-driven mapping with: python -m scripts.regenerate_tag_map
+global_threshold: 0.35
+confidence_threshold: 0.45
+default_department: Human_Review
+
+departments:
+  technical_issue: Technical_Support
+  hardware_issue: Technical_Support
+  software_issue: Technical_Support
+  network_issue: Technical_Support
+  performance_issue: Technical_Support
+  system_issue: Technical_Support
+  configuration_issue: Technical_Support
+  compatibility_issue: Technical_Support
+  maintenance_issue: Technical_Support
+  update_request: Technical_Support
+  scalability_issue: Technical_Support
+  synchronization_issue: Technical_Support
+  access_issue: IT_Support
+  security_issue: IT_Support
+  api_issue: IT_Support
+  data_issue: IT_Support
+  integration_issue: IT_Support
+  incident: Service_Outages_And_Maintenance
+  service_request: Customer_Service
+  general_inquiry: Customer_Service
+  billing_issue: Billing_And_Payments
+  refund_request: Billing_And_Payments
+  order_issue: Returns_And_Exchanges
+  feature_request: Product_Support
+  training_request: Human_Resources
+  sales_inquiry: Sales_And_Presales
+  digital_marketing: Marketing
+  digital_strategy: Marketing
+
+priority_escalation:
+  critical: Escalation
+  high: null
