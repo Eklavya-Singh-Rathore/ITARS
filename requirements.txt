@@ -25,8 +25,11 @@ sacremoses==0.1.1
 # --- config / serialization ---
 PyYAML==6.0.2
 
-# --- database (Phase 6) ---
+# --- database (Phase 6 / 15A) ---
 SQLAlchemy==2.0.50
+# Postgres driver — needed for Supabase / production; SQLite still works without
+# it (sqlite3 ships with CPython). Pinned to a current psycopg v3 release.
+psycopg[binary]==3.2.3
 
 # --- RAG (Phase 7): retrieval-only vector store (BGE-small via sentence-transformers above) ---
 qdrant-client==1.12.1

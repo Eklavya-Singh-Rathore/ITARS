@@ -24,10 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgomp1 curl \
     && rm -rf /var/lib/apt/lists/*
 
-ARG INSTALL_POSTGRES=false
 COPY requirements.txt .
-RUN pip install -r requirements.txt \
-    && if [ "$INSTALL_POSTGRES" = "true" ]; then pip install "psycopg[binary]"; fi
+# psycopg[binary] is now a regular dependency (Phase 15A) — Supabase / Postgres
+# is the production target. SQLite still works locally without extra setup.
+RUN pip install -r requirements.txt
 
 COPY backend ./backend
 COPY config ./config

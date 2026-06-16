@@ -25,11 +25,41 @@ token.
 - The pre-deploy ML steps below run in the author's Python 3.11 ML env (this
   repo's dev host lacks `pandas`/`faiss`/`torch`).
 
+## 0. Database — Supabase Postgres (Phase 15A)
+
+Production persistence lives on Supabase Postgres. SQLite still works for local
+dev (the default when `ITARS_DATABASE_URL` is unset).
+
+### Pick a connection string
+
+| Mode | Host:Port | Best for | Notes |
+|---|---|---|---|
+| **Shared pooler — session** | `aws-0-<region>.pooler.supabase.com:5432` | Persistent backend on IPv4 hosts (Railway / Fly / HF Spaces) | **Recommended** |
+| Direct | `db.<ref>.supabase.co:5432` | Backend on an IPv6-capable host | Free tier is IPv6-only |
+| Shared pooler — transaction | `aws-0-<region>.pooler.supabase.com:6543` | Serverless / edge functions | Auto-wired with `NullPool` + no prepared statements |
+
+Format the URL like:
+
+```
+ITARS_DATABASE_URL=postgresql+psycopg://postgres.<PROJECT-REF>:<DB-PASSWORD>@aws-0-<REGION>.pooler.supabase.com:5432/postgres
+```
+
+The driver scheme (`+psycopg`) is normalized automatically — bare
+`postgresql://` and the legacy `postgres://` schemes also work. Grab the exact
+string + DB password from your Supabase dashboard → **Connect** button.
+
+### Schema bootstrapping
+
+The initial schema for this project is provisioned via a tracked Supabase
+migration (`phase15a_initial_itars_schema`). On a fresh project, either:
+- run that migration via the Supabase dashboard / `supabase db push`, or
+- let the app run `init_db()` on first boot — it's idempotent
+  (`CREATE TABLE IF NOT EXISTS`-style) and produces the exact same schema.
+
 ## 1. Backend (Docker)
 
 ```bash
 # From the repo root.
-# Build (add --build-arg INSTALL_POSTGRES=true for a Postgres deploy).
 docker build -t itars-backend .
 
 docker run -p 8000:8000 \
