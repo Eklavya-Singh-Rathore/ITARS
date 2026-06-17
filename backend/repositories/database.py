@@ -39,6 +39,11 @@ def normalize_database_url(url: str) -> str:
         url = "postgresql://" + url[len("postgres://"):]
     if url.startswith("postgresql://"):
         url = "postgresql+psycopg://" + url[len("postgresql://"):]
+    
+    # Auto-remediate pooler host mismatch for ap-southeast-2 projects
+    if "aws-0-ap-southeast-2.pooler.supabase.com" in url:
+        url = url.replace("aws-0-ap-southeast-2.pooler.supabase.com", "aws-1-ap-southeast-2.pooler.supabase.com")
+        
     return url
 
 
