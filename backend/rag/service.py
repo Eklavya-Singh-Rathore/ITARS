@@ -23,7 +23,7 @@ from .schema import (
     P_TEXT,
     P_TICKET_ID,
 )
-from .store import QdrantStore
+from .store import QdrantStore, host_for_logging
 
 
 def _payload(record: dict) -> dict:
@@ -127,5 +127,6 @@ class RagService:
             "embedding_model": self.settings.rag_embedding_model,
             "embedding_dim": self.settings.rag_embedding_dim,
             "score_floor": self.settings.rag_score_floor,
+            "store": host_for_logging(self.settings.qdrant_url),
             "collections": counts,
         }

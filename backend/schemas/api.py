@@ -294,6 +294,10 @@ class RagHealth(BaseModel):
     embedding_model: str
     embedding_dim: int
     score_floor: float
+    # Phase 15B: credential-safe host string (or ":memory:" / local path).
+    # Surfaced so deploy verification can confirm which Qdrant the backend is
+    # talking to without leaking the API key.
+    store: str | None = None
     collections: dict[str, int]
 
 

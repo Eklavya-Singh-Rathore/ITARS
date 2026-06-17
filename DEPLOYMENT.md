@@ -56,6 +56,64 @@ migration (`phase15a_initial_itars_schema`). On a fresh project, either:
 - let the app run `init_db()` on first boot — it's idempotent
   (`CREATE TABLE IF NOT EXISTS`-style) and produces the exact same schema.
 
+## 0b. Vector store — Qdrant (Phase 15B)
+
+RAG retrieval uses **Qdrant**. The deterministic routing path still uses FAISS
+in-process and is unaffected. Defaults to `:memory:` (zero-setup, ephemeral) so
+local dev needs nothing extra.
+
+### Pick a deployment
+
+| Mode | URL example | Notes |
+|---|---|---|
+| **Qdrant Cloud** | `https://<cluster>.cloud.qdrant.io:6333` | Free 1 GB tier; **recommended** |
+| Self-hosted | `https://qdrant.your-domain.com:6333` | Run via the `docker-compose.yml` in this repo |
+| Embedded | `./qdrant_data` (a path) | Persistent on disk, single-process |
+| In-memory | `:memory:` | Dev / tests only — lost on restart |
+
+### Configure
+
+```env
+ITARS_QDRANT_URL=https://<cluster>.cloud.qdrant.io:6333
+ITARS_QDRANT_API_KEY=<paste from Qdrant Cloud "Cluster Details" → API Keys>
+# Optional — defaults are good:
+# ITARS_RAG_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+# ITARS_RAG_EMBEDDING_DIM=384
+# ITARS_RAG_TOP_K=5
+# ITARS_RAG_SCORE_FLOOR=0.5
+```
+
+The URL is normalized automatically — a bare host (`abc.cloud.qdrant.io`) is
+upgraded to `https://abc.cloud.qdrant.io:6333`; only `localhost` and loopback
+IPs default to `http://`. The API key is **never logged**.
+
+### Collections
+
+The five ITARS RAG collections are created on first use, but you can also
+pre-create them on boot via `RagService.store.init_collections()` if you want
+`/rag/health` to show an explicit (empty) inventory immediately:
+
+| Collection | Source | Populated by |
+|---|---|---|
+| `historical_tickets` | Domain-A corpus | `python -m scripts.ingest_rag` |
+| `feedback_records` | Reviewer overrides | `feedback_service.record_review` (Phase 11) |
+| `routing_history` | Per-decision log | Future |
+| `duplicate_clusters` | Pre-clustered nearest-neighbours | Future |
+| `routing_policies` | Tag→department policy text | Future |
+
+### Verify
+
+```bash
+curl https://<backend-host>/rag/health
+# {
+#   "embedding_model": "BAAI/bge-small-en-v1.5",
+#   "embedding_dim": 384,
+#   "score_floor": 0.5,
+#   "store": "https://<cluster>.cloud.qdrant.io:6333",
+#   "collections": { "historical_tickets": 0, ... }
+# }
+```
+
 ## 1. Backend (Docker)
 
 ```bash
