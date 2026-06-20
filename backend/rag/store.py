@@ -1,147 +1,98 @@
-"""Qdrant vector store wrapper (Phase 7 / 15B).
+"""Vector store backends (Phase 15B — Supabase pgvector).
 
-Supports in-memory (`:memory:`, default — zero-setup and used in tests), a remote
-server URL (Qdrant Cloud or self-hosted), or a local persistent path. Cosine
-distance over L2-normalized vectors. Ticket ids (hex strings) are mapped to
-deterministic UUID point ids; the real ticket id lives in the payload.
+Two interchangeable stores behind one duck-typed interface
+(`upsert` / `search` / `count` / `init_collections` / `mode`):
 
-Phase 15B adds:
-  * URL normalization — Qdrant Cloud often dispenses bare `xyz.cloud.qdrant.io`
-    hostnames; we add `https://` automatically for any non-local host so the
-    HTTP client doesn't try gRPC by accident.
-  * `host_for_logging()` — never includes credentials, safe for `/rag/health`
-    payloads or stdout.
-  * `init_collections()` — pre-creates the 5 known collections on first boot
-    so cold-start diagnostics are clearer.
+  * ``PgVectorStore`` — production. Stores 384-dim embeddings in the *same*
+    Supabase Postgres as the relational data, one table per logical collection,
+    cosine similarity via pgvector's ``<=>`` operator over an HNSW index. Vectors
+    are durable, so retrieval survives an HF Space / container restart.
+
+  * ``InMemoryVectorStore`` — dev/test fallback (pure Python, brute-force
+    cosine). Used automatically when the database is SQLite, so the suite runs
+    with no Postgres and no network. *Not* used in production.
+
+Ticket ids map to deterministic UUID5 point ids so re-ingesting the same ticket
+upserts in place (parity with the previous Qdrant behaviour).
 """
 
 from __future__ import annotations
 
 import uuid
 from typing import Any, Sequence
-from urllib.parse import urlsplit
 
 from ..core.config import SETTINGS, Settings
-from .schema import ALL_COLLECTIONS
+from .schema import (
+    ALL_COLLECTIONS,
+    P_DATE,
+    P_DEPARTMENT,
+    P_LANGUAGE,
+    P_PRIORITY,
+    P_TAGS,
+    P_TEXT,
+    P_TICKET_ID,
+)
 
 
 def point_id(ticket_id: str) -> str:
+    """Deterministic point id for a ticket (stable across re-ingestion)."""
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"itars:{ticket_id}"))
 
 
-# Hostnames we treat as local (allowed to fall back to http://).
-_LOCAL_HOST_PREFIXES = ("localhost", "127.", "0.0.0.0", "::1")
+# Columns the search filter is allowed to constrain (whitelist → no injection).
+_FILTERABLE = (P_DEPARTMENT, P_PRIORITY, P_LANGUAGE, P_TAGS, P_TICKET_ID)
+# Payload columns selected back from a row, in order.
+_PAYLOAD_COLUMNS = (
+    P_TICKET_ID,
+    P_TEXT,
+    P_DEPARTMENT,
+    P_PRIORITY,
+    P_TAGS,
+    P_LANGUAGE,
+    P_DATE,
+)
 
 
-def normalize_qdrant_url(url: str) -> str:
-    """Coerce raw Qdrant URLs into something the HTTP client can consume.
+def _cosine(a, b) -> float:
+    """Cosine similarity in [-1, 1] (works on plain Python/NumPy sequences)."""
+    import numpy as np
 
-    Cases handled:
-      * `:memory:` and local file paths — returned unchanged.
-      * Bare host (e.g. `xyz-eastus.cloud.qdrant.io:6333`) → `https://...`.
-      * Bare host without port → `https://...:6333`.
-      * Localhost-style hosts default to `http://` (since Qdrant Cloud uses
-        HTTPS but a local dev container usually does not).
+    av = np.asarray(a, dtype="float32")
+    bv = np.asarray(b, dtype="float32")
+    na = float(np.linalg.norm(av)) or 1.0
+    nb = float(np.linalg.norm(bv)) or 1.0
+    return float(np.dot(av, bv) / (na * nb))
+
+
+# ---------------------------------------------------------------------------
+# In-memory store (dev / tests)
+# ---------------------------------------------------------------------------
+class InMemoryVectorStore:
+    """Brute-force cosine store kept entirely in process memory.
+
+    Semantics match pgvector/Qdrant cosine: same ranking, same score floor,
+    same metadata filtering. Ephemeral by design — production uses pgvector.
     """
-    if not url or url == ":memory:" or url.startswith(":"):
-        return url
-    # Already a URL — leave it alone (preserve port and path).
-    if url.startswith(("http://", "https://")):
-        return url
-    # Local file paths (RocksDB embedded mode) — start with `.` or `/` or a
-    # drive letter, and have no `:port` pattern matching a TCP port.
-    if url.startswith(("./", "../", "/")) or (len(url) > 2 and url[1] == ":" and url[2] in "/\\"):
-        return url
-    # At this point we have a bare host (optionally with :port).
-    host = url
-    if ":" not in host:
-        host = f"{host}:6333"
-    is_local = any(host.startswith(p) for p in _LOCAL_HOST_PREFIXES)
-    scheme = "http" if is_local else "https"
-    return f"{scheme}://{host}"
 
+    mode = "memory"
 
-def host_for_logging(url: str) -> str:
-    """Credential-safe host string for `/rag/health` and stdout."""
-    if not url or url.startswith(":"):
-        return url
-    if "://" not in url:
-        url = normalize_qdrant_url(url)
-    try:
-        parts = urlsplit(url)
-    except ValueError:
-        return "<invalid-url>"
-    if parts.scheme not in ("http", "https"):
-        return url  # local path — no creds to redact
-    port = f":{parts.port}" if parts.port and parts.port not in (80, 443) else ""
-    return f"{parts.scheme}://{parts.hostname or ''}{port}"
-
-
-class QdrantStore:
     def __init__(self, settings: Settings = SETTINGS):
-        from qdrant_client import QdrantClient
-
         self.settings = settings
         self.dim = int(settings.rag_embedding_dim)
-        url = settings.qdrant_url
-        if url == ":memory:":
-            self.client = QdrantClient(":memory:")
-        else:
-            normalized = normalize_qdrant_url(url)
-            if normalized.startswith(("http://", "https://")):
-                self.client = QdrantClient(
-                    url=normalized, api_key=settings.qdrant_api_key
-                )
-            else:
-                self.client = QdrantClient(path=normalized)
-
-    def ensure_collection(self, name: str) -> None:
-        from qdrant_client.models import Distance, VectorParams
-
-        if not self.client.collection_exists(name):
-            self.client.create_collection(
-                collection_name=name,
-                vectors_config=VectorParams(size=self.dim, distance=Distance.COSINE),
-            )
+        self._data: dict[str, dict[str, dict[str, Any]]] = {}
 
     def init_collections(self) -> None:
-        """Idempotently create every known ITARS collection.
-
-        Useful at app boot when pointing at a fresh Qdrant Cloud instance: the
-        `/rag/health` response then shows the 5 collections explicitly (empty
-        but present), instead of nothing.
-        """
         for name in ALL_COLLECTIONS:
-            self.ensure_collection(name)
+            self._data.setdefault(name, {})
 
     def upsert(self, collection: str, items: Sequence[dict]) -> int:
-        from qdrant_client.models import PointStruct
-
-        self.ensure_collection(collection)
-        points = [
-            PointStruct(
-                id=point_id(item["id"]),
-                vector=[float(x) for x in item["vector"]],
-                payload=item["payload"],
-            )
-            for item in items
-        ]
-        if points:
-            self.client.upsert(collection_name=collection, points=points)
-        return len(points)
-
-    def _build_filter(self, filters: dict | None):
-        if not filters:
-            return None
-        from qdrant_client.models import FieldCondition, Filter, MatchValue
-
-        return Filter(
-            must=[
-                FieldCondition(key=key, match=MatchValue(value=value))
-                for key, value in filters.items()
-                if value is not None
-            ]
-        )
+        bucket = self._data.setdefault(collection, {})
+        for item in items:
+            bucket[point_id(item["id"])] = {
+                "vector": list(item["vector"]),
+                "payload": item["payload"],
+            }
+        return len(items)
 
     def search(
         self,
@@ -152,22 +103,176 @@ class QdrantStore:
         score_floor: float = 0.0,
         filters: dict | None = None,
     ) -> list[dict[str, Any]]:
-        if not self.client.collection_exists(collection):
+        bucket = self._data.get(collection)
+        if not bucket:
             return []
-        response = self.client.query_points(
-            collection_name=collection,
-            query=[float(x) for x in vector],
-            limit=int(top_k),
-            query_filter=self._build_filter(filters),
-            score_threshold=float(score_floor) if score_floor else None,
-            with_payload=True,
-        )
-        return [
-            {"score": float(p.score), "payload": p.payload or {}}
-            for p in response.points
-        ]
+        active = {k: v for k, v in (filters or {}).items() if v is not None}
+        rows: list[dict[str, Any]] = []
+        for entry in bucket.values():
+            payload = entry["payload"]
+            if any(payload.get(k) != v for k, v in active.items()):
+                continue
+            score = _cosine(vector, entry["vector"])
+            if score_floor and score < score_floor:
+                continue
+            rows.append({"score": score, "payload": payload})
+        rows.sort(key=lambda r: r["score"], reverse=True)
+        return rows[: int(top_k)]
 
     def count(self, collection: str) -> int:
-        if not self.client.collection_exists(collection):
+        return len(self._data.get(collection, {}))
+
+
+# ---------------------------------------------------------------------------
+# pgvector store (production)
+# ---------------------------------------------------------------------------
+# Collection name == table name. The dict is a strict whitelist: only these
+# names are ever interpolated into SQL (their values are constants, never user
+# input), so dynamic table names cannot be an injection vector.
+_TABLE_FOR = {name: name for name in ALL_COLLECTIONS}
+
+
+def _vector_literal(vector: Sequence[float]) -> str:
+    """pgvector text representation: '[0.1,0.2,...]'."""
+    return "[" + ",".join(repr(float(x)) for x in vector) + "]"
+
+
+class PgVectorStore:
+    """Durable vector store over Supabase Postgres + pgvector.
+
+    Uses the same database URL as the relational layer (`ITARS_DATABASE_URL`) —
+    one Supabase project is both the relational and the vector database. The
+    engine is created lazily; no connection is opened until the first query, so
+    construction can't block app startup.
+    """
+
+    mode = "pgvector"
+
+    def __init__(self, settings: Settings = SETTINGS, *, engine=None):
+        from ..repositories.database import make_engine
+
+        self.settings = settings
+        self.dim = int(settings.rag_embedding_dim)
+        self._engine = engine if engine is not None else make_engine(settings.database_url)
+
+    def _table(self, collection: str) -> str:
+        table = _TABLE_FOR.get(collection)
+        if table is None:
+            raise ValueError(f"Unknown RAG collection: {collection!r}")
+        return table
+
+    def init_collections(self) -> None:
+        """Idempotently ensure the extension + 5 collection tables exist.
+
+        Authoritative provisioning is the tracked Supabase migration
+        (`phase15b_pgvector_rag_schema`); this is a self-heal for fresh deploys
+        and exactly mirrors that DDL.
+        """
+        from sqlalchemy import text
+
+        with self._engine.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            for table in _TABLE_FOR.values():
+                conn.execute(
+                    text(
+                        f"CREATE TABLE IF NOT EXISTS {table} ("
+                        "point_id text PRIMARY KEY, ticket_id text, text text, "
+                        "department text, priority text, tags text, language text, "
+                        "date text, embedding vector(:dim), "
+                        "created_at timestamptz NOT NULL DEFAULT now())".replace(
+                            ":dim", str(self.dim)
+                        )
+                    )
+                )
+                conn.execute(
+                    text(
+                        f"CREATE INDEX IF NOT EXISTS ix_{table}_embedding "
+                        f"ON {table} USING hnsw (embedding vector_cosine_ops)"
+                    )
+                )
+
+    def upsert(self, collection: str, items: Sequence[dict]) -> int:
+        from sqlalchemy import text
+
+        table = self._table(collection)
+        stmt = text(
+            f"INSERT INTO {table} "
+            "(point_id, ticket_id, text, department, priority, tags, language, date, embedding) "
+            "VALUES (:pid, :ticket_id, :text, :department, :priority, :tags, :language, :date, "
+            "CAST(:embedding AS vector)) "
+            "ON CONFLICT (point_id) DO UPDATE SET "
+            "ticket_id=EXCLUDED.ticket_id, text=EXCLUDED.text, department=EXCLUDED.department, "
+            "priority=EXCLUDED.priority, tags=EXCLUDED.tags, language=EXCLUDED.language, "
+            "date=EXCLUDED.date, embedding=EXCLUDED.embedding"
+        )
+        count = 0
+        with self._engine.begin() as conn:
+            for item in items:
+                payload = item["payload"]
+                conn.execute(
+                    stmt,
+                    {
+                        "pid": point_id(item["id"]),
+                        "ticket_id": payload.get(P_TICKET_ID),
+                        "text": payload.get(P_TEXT),
+                        "department": payload.get(P_DEPARTMENT),
+                        "priority": payload.get(P_PRIORITY),
+                        "tags": payload.get(P_TAGS),
+                        "language": payload.get(P_LANGUAGE),
+                        "date": payload.get(P_DATE),
+                        "embedding": _vector_literal(item["vector"]),
+                    },
+                )
+                count += 1
+        return count
+
+    def search(
+        self,
+        collection: str,
+        vector: Sequence[float],
+        *,
+        top_k: int,
+        score_floor: float = 0.0,
+        filters: dict | None = None,
+    ) -> list[dict[str, Any]]:
+        from sqlalchemy import text
+
+        table = self._table(collection)
+        params: dict[str, Any] = {"embedding": _vector_literal(vector), "k": int(top_k)}
+        clauses: list[str] = []
+        for i, (key, value) in enumerate((filters or {}).items()):
+            if value is None or key not in _FILTERABLE:
+                continue
+            clauses.append(f"{key} = :f{i}")
+            params[f"f{i}"] = value
+        if score_floor:
+            # cosine_distance <= 1 - floor  ⟺  similarity >= floor
+            clauses.append("(embedding <=> CAST(:embedding AS vector)) <= :max_dist")
+            params["max_dist"] = 1.0 - float(score_floor)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        cols = ", ".join(_PAYLOAD_COLUMNS)
+        stmt = text(
+            f"SELECT {cols}, 1 - (embedding <=> CAST(:embedding AS vector)) AS score "
+            f"FROM {table} {where} "
+            "ORDER BY embedding <=> CAST(:embedding AS vector) "
+            "LIMIT :k"
+        )
+        with self._engine.connect() as conn:
+            result = conn.execute(stmt, params)
+            rows = result.mappings().all()
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            payload = {col: row[col] for col in _PAYLOAD_COLUMNS}
+            out.append({"score": float(row["score"]), "payload": payload})
+        return out
+
+    def count(self, collection: str) -> int:
+        from sqlalchemy import text
+
+        table = self._table(collection)
+        try:
+            with self._engine.connect() as conn:
+                return int(conn.execute(text(f"SELECT count(*) FROM {table}")).scalar() or 0)
+        except Exception:
+            # Table not yet created (fresh project before init_collections).
             return 0
-        return int(self.client.count(collection_name=collection).count)

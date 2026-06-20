@@ -1,11 +1,11 @@
-# Full-stack self-host topology for ITARS V2: backend + Qdrant + Postgres.
+# Full-stack self-host topology for ITARS V2: backend + Postgres (pgvector).
 #   ITARS_MODELS_PATH=/abs/path/to/hf_deploy/Models \
 #   ITARS_DATA_PATH=/abs/path/to/hf_deploy/Data \
 #   GEMINI_API_KEY=... \
 #   docker compose up --build
 #
-# Mirrors the production target (Postgres for the decision log, Qdrant for RAG)
-# so the deployed pipeline can be validated locally. The model artifacts live
+# Mirrors the production target: a single Postgres (pgvector image) is BOTH the
+# relational decision log AND the RAG vector store. The model artifacts live
 # outside the repository (typically the legacy hf_deploy/ bundle) and are mounted
 # read-only via ITARS_MODELS_PATH / ITARS_DATA_PATH.
 services:
@@ -16,7 +16,8 @@ services:
       - "8000:8000"
     environment:
       ITARS_DATABASE_URL: postgresql+psycopg://itars:itars@postgres:5432/itars
-      ITARS_QDRANT_URL: http://qdrant:6333
+      # Vector store auto-selects pgvector because the DB is Postgres.
+      ITARS_VECTOR_STORE: ${ITARS_VECTOR_STORE:-auto}
       ITARS_LLM_PROVIDER: ${ITARS_LLM_PROVIDER:-gemini}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       ITARS_GEMINI_MODEL: ${ITARS_GEMINI_MODEL:-gemini-2.5-flash}
@@ -29,18 +30,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      qdrant:
-        condition: service_started
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-    volumes:
-      - qdrant_data:/qdrant/storage
 
   postgres:
-    image: postgres:16-alpine
+    # pgvector-enabled Postgres image (relational + vector in one).
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: itars
       POSTGRES_PASSWORD: itars
@@ -57,5 +50,4 @@ services:
 
 volumes:
   hf_cache:
-  qdrant_data:
   pg_data:

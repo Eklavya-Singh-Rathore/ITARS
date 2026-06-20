@@ -1,9 +1,13 @@
-"""RagService — ingest + retrieve over Qdrant with citations and a score floor.
+"""RagService — ingest + retrieve over pgvector with citations and a score floor.
 
-Retrieval-only (Phase 7): powers the similar-tickets panel and is the substrate
-for later grounded generation. Every result carries its source ticket id
-(citation) and cosine score; results below the configured floor are dropped, so
-a weak match surfaces as "no similar ticket found" rather than a misleading one.
+Retrieval-only (Phase 7): powers the similar-tickets panel and grounds the AI
+assistance. Every result carries its source ticket id (citation) and cosine
+score; results below the configured floor are dropped, so a weak match surfaces
+as "no similar ticket found" rather than a misleading one.
+
+Phase 15B: the vector store is Supabase pgvector in production
+(`PgVectorStore`), with an in-process `InMemoryVectorStore` fallback for SQLite
+dev/tests. Selection is automatic from `ITARS_VECTOR_STORE` / the database URL.
 """
 
 from __future__ import annotations
@@ -23,7 +27,26 @@ from .schema import (
     P_TEXT,
     P_TICKET_ID,
 )
-from .store import QdrantStore, host_for_logging
+from .store import InMemoryVectorStore, PgVectorStore
+
+
+def select_store(settings: Settings):
+    """Pick the vector store backend.
+
+    `ITARS_VECTOR_STORE` forces it (`pgvector` | `memory`); the default `auto`
+    uses pgvector when the database is Postgres (Supabase), else the in-memory
+    fallback (SQLite dev / tests).
+    """
+    from ..repositories.database import normalize_database_url
+
+    mode = (settings.vector_store_mode or "auto").strip().lower()
+    if mode == "memory":
+        return InMemoryVectorStore(settings)
+    if mode == "pgvector":
+        return PgVectorStore(settings)
+    if normalize_database_url(settings.database_url).startswith("postgresql"):
+        return PgVectorStore(settings)
+    return InMemoryVectorStore(settings)
 
 
 def _payload(record: dict) -> dict:
@@ -44,11 +67,11 @@ class RagService:
         settings: Settings = SETTINGS,
         *,
         embedder: RagEmbedder | None = None,
-        store: QdrantStore | None = None,
+        store=None,  # PgVectorStore | InMemoryVectorStore (duck-typed)
     ):
         self.settings = settings
         self.embedder = embedder if embedder is not None else RagEmbedder(settings)
-        self.store = store if store is not None else QdrantStore(settings)
+        self.store = store if store is not None else select_store(settings)
 
     # ------------------------------------------------------------- ingest
     def ingest(self, records: Sequence[dict], *, collection: str = HISTORICAL_TICKETS) -> int:
@@ -127,6 +150,6 @@ class RagService:
             "embedding_model": self.settings.rag_embedding_model,
             "embedding_dim": self.settings.rag_embedding_dim,
             "score_floor": self.settings.rag_score_floor,
-            "store": host_for_logging(self.settings.qdrant_url),
+            "vector_store_mode": getattr(self.store, "mode", "unknown"),
             "collections": counts,
         }

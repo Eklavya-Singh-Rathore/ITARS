@@ -49,7 +49,7 @@ for reviewers, and (e) a captured human-feedback loop that feeds retrieval back.
 │  └───────────────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────┐  ┌─────────────────────────────────┐    │
 │  │  Persistence           │  │  RAG (retrieval-only)           │    │
-│  │  SQLAlchemy 2.0        │  │  BGE-small + Qdrant             │    │
+│  │  SQLAlchemy 2.0        │  │  BGE-small + Supabase pgvector  │    │
 │  │  6 normalised tables   │  │  5 collections + citations      │    │
 │  └────────────────────────┘  └─────────────────────────────────┘    │
 │  ┌────────────────────────┐  ┌─────────────────────────────────┐    │
@@ -70,7 +70,7 @@ for reviewers, and (e) a captured human-feedback loop that feeds retrieval back.
 | **Explainability Engine** | Three layers per ticket: plain prose / evidence / forensics | Named gate rule, matched urgency words, per-dept scores |
 | **Persistence Layer** | Every decision logged; six-table schema, Postgres-ready | SQLAlchemy 2.0 + SQLite (default) |
 | **Analytics & Monitoring** | Distributions + confidence histogram with gate floor + reroute rates + override flow | Recharts + a dependency-free custom SVG bipartite Sankey |
-| **RAG Retrieval** | BGE-small embeddings, 5 collections, score-floor refusal | Qdrant (in-memory by default; URL/path swappable) |
+| **RAG Retrieval** | BGE-small embeddings, 5 collections, score-floor refusal | Supabase pgvector (same Postgres as the relational data; in-memory fallback for dev) |
 | **LLM Gateway** | Provider-agnostic, fallback chain, prompt-injection fencing, budget caps | REST via `httpx` — no SDK |
 | **AI Assistant Layer** | Summary / Explanation / Recommendation / Actions, cited; `insufficient_evidence` guard | Composes the gateway + RAG; advisory only |
 
@@ -81,7 +81,7 @@ for reviewers, and (e) a captured human-feedback loop that feeds retrieval back.
 ### Backend
 - **FastAPI 0.115** + Pydantic v2 + Uvicorn
 - **SQLAlchemy 2.0** (SQLite default; Postgres via `postgresql+psycopg://…`)
-- **Qdrant 1.12** (RAG only — retrieval, never routing)
+- **Supabase pgvector** (RAG vectors — same Postgres as the relational data)
 - **SBERT** — `Eklavya73/sbert_finetuned` (routing) +
   `Eklavya73/duplicate_sbert` (duplicates), both fine-tuned from
   `sentence-transformers/all-mpnet-base-v2`
@@ -202,7 +202,7 @@ cp .env.example .env.local        # optional — defaults to http://localhost:80
 npm run dev                       # → http://localhost:3000
 ```
 
-### 3. Docker (full stack: backend + Qdrant + Postgres)
+### 3. Docker (full stack: backend + Postgres/pgvector)
 
 ```bash
 # From the repo root.
@@ -212,7 +212,7 @@ export GEMINI_API_KEY=...          # never commit
 docker compose up --build
 ```
 
-Backend on `:8000`, Qdrant on `:6333`, Postgres on `:5432`.
+Backend on `:8000`, Postgres (pgvector) on `:5432`.
 
 ### 4. Tests
 
@@ -236,7 +236,7 @@ is:
 |---|---|---|
 | Frontend | **Vercel** | Root directory `frontend/`; set `NEXT_PUBLIC_API_URL` |
 | Backend | **Railway / Fly / HF Spaces (Docker)** | `Dockerfile` ready; needs the model volume |
-| Vector DB | **Qdrant Cloud** (free tier) | or self-host via `docker-compose.yml` |
+| Vector DB | **Supabase pgvector** | same Postgres as the app DB — no separate service |
 | DB | **Postgres** (Railway/Neon addon) | SQLite is fine for demo |
 | LLM | **Gemini 2.5 Flash** | verified working; key in `.env` only |
 
@@ -275,7 +275,7 @@ Base URL defaults to `http://localhost:8000`. Full OpenAPI at `/docs`.
 
 ## Documentation
 
-- [**DEPLOYMENT.md**](DEPLOYMENT.md) — the deploy runbook (Docker, Vercel, Qdrant, Postgres, security)
+- [**DEPLOYMENT.md**](DEPLOYMENT.md) — the deploy runbook (Docker, Vercel, Supabase/pgvector, security)
 - [**PROJECT_HANDOVER.md**](PROJECT_HANDOVER.md) — the full session continuity guide (architecture, design decisions, test breakdown, deferred items)
 - [**CONTRIBUTING.md**](CONTRIBUTING.md) — ground rules, setup, branching
 - [**CHANGELOG.md**](CHANGELOG.md) — release notes

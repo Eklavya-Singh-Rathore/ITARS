@@ -56,46 +56,44 @@ migration (`phase15a_initial_itars_schema`). On a fresh project, either:
 - let the app run `init_db()` on first boot — it's idempotent
   (`CREATE TABLE IF NOT EXISTS`-style) and produces the exact same schema.
 
-## 0b. Vector store — Qdrant (Phase 15B)
+## 0b. Vector store — Supabase pgvector (Phase 15B)
 
-RAG retrieval uses **Qdrant**. The deterministic routing path still uses FAISS
-in-process and is unaffected. Defaults to `:memory:` (zero-setup, ephemeral) so
-local dev needs nothing extra.
+RAG retrieval uses **Supabase pgvector** — the *same* Postgres as the relational
+data, so there is **no separate vector database**. The deterministic routing
+path still uses FAISS in-process and is unaffected. With SQLite (local dev), an
+in-memory fallback is used automatically.
 
-### Pick a deployment
+### How it's selected
 
-| Mode | URL example | Notes |
-|---|---|---|
-| **Qdrant Cloud** | `https://<cluster>.cloud.qdrant.io:6333` | Free 1 GB tier; **recommended** |
-| Self-hosted | `https://qdrant.your-domain.com:6333` | Run via the `docker-compose.yml` in this repo |
-| Embedded | `./qdrant_data` (a path) | Persistent on disk, single-process |
-| In-memory | `:memory:` | Dev / tests only — lost on restart |
+The store follows `ITARS_DATABASE_URL`. No extra config is required:
 
-### Configure
+| `ITARS_VECTOR_STORE` | Behaviour |
+|---|---|
+| `auto` (default) | pgvector when the DB is Postgres, else in-memory |
+| `pgvector` | Force Supabase pgvector |
+| `memory` | Force the in-process fallback (dev/tests) |
 
 ```env
-ITARS_QDRANT_URL=https://<cluster>.cloud.qdrant.io:6333
-ITARS_QDRANT_API_KEY=<paste from Qdrant Cloud "Cluster Details" → API Keys>
+# Vectors ride on the same Supabase connection as Phase 15A:
+ITARS_DATABASE_URL=postgresql+psycopg://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres
 # Optional — defaults are good:
+# ITARS_VECTOR_STORE=auto
 # ITARS_RAG_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 # ITARS_RAG_EMBEDDING_DIM=384
-# ITARS_RAG_TOP_K=5
 # ITARS_RAG_SCORE_FLOOR=0.5
 ```
 
-The URL is normalized automatically — a bare host (`abc.cloud.qdrant.io`) is
-upgraded to `https://abc.cloud.qdrant.io:6333`; only `localhost` and loopback
-IPs default to `http://`. The API key is **never logged**.
+### Schema
 
-### Collections
+Provisioned via the tracked migration `phase15b_pgvector_rag_schema`
+(5 collection tables, `vector(384)`, HNSW cosine indexes, RLS enabled). The app
+also self-heals via `init_collections()` on boot (idempotent `CREATE TABLE IF
+NOT EXISTS`). The `vector` extension must be enabled (Supabase: Dashboard →
+Database → Extensions → enable `vector`).
 
-The five ITARS RAG collections are created on first use, but you can also
-pre-create them on boot via `RagService.store.init_collections()` if you want
-`/rag/health` to show an explicit (empty) inventory immediately:
-
-| Collection | Source | Populated by |
+| Collection table | Source | Populated by |
 |---|---|---|
-| `historical_tickets` | Domain-A corpus | `python -m scripts.ingest_rag` |
+| `historical_tickets` | Domain-A corpus / decision log | `python -m scripts.ingest_rag` |
 | `feedback_records` | Reviewer overrides | `feedback_service.record_review` (Phase 11) |
 | `routing_history` | Per-decision log | Future |
 | `duplicate_clusters` | Pre-clustered nearest-neighbours | Future |
@@ -109,9 +107,12 @@ curl https://<backend-host>/rag/health
 #   "embedding_model": "BAAI/bge-small-en-v1.5",
 #   "embedding_dim": 384,
 #   "score_floor": 0.5,
-#   "store": "https://<cluster>.cloud.qdrant.io:6333",
+#   "vector_store_mode": "pgvector",
 #   "collections": { "historical_tickets": 0, ... }
 # }
+
+curl https://<backend-host>/health
+# { ..., "database_mode": "postgresql", "vector_store_mode": "pgvector" }
 ```
 
 ## 1. Backend (Docker)

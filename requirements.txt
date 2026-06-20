@@ -31,8 +31,10 @@ SQLAlchemy==2.0.50
 # it (sqlite3 ships with CPython). Pinned to a current psycopg v3 release.
 psycopg[binary]==3.2.3
 
-# --- RAG (Phase 7): retrieval-only vector store (BGE-small via sentence-transformers above) ---
-qdrant-client==1.12.1
+# --- RAG (Phase 7 / 15B): retrieval-only vector store ---
+# Vectors live in Supabase pgvector (same Postgres as the relational data, via
+# SQLAlchemy + psycopg above). No separate vector-DB client needed.
+# Embeddings: BGE-small via sentence-transformers (above).
 
 # --- LLM gateway (Phase 8): providers call Gemini/Grok REST via httpx (no SDK) ---
 httpx==0.27.2

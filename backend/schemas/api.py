@@ -126,6 +126,11 @@ class HealthResponse(BaseModel):
     duplicate_index_size: int
     duplicate_threshold: float
     encoders_loaded: bool
+    # Phase 15B: persistence + vector-store modes for deploy verification.
+    database_mode: str = Field("unknown", description="postgresql | sqlite")
+    vector_store_mode: str = Field(
+        "unknown", description="pgvector | memory | disabled"
+    )
 
 
 class MetricsResponse(BaseModel):
@@ -294,10 +299,8 @@ class RagHealth(BaseModel):
     embedding_model: str
     embedding_dim: int
     score_floor: float
-    # Phase 15B: credential-safe host string (or ":memory:" / local path).
-    # Surfaced so deploy verification can confirm which Qdrant the backend is
-    # talking to without leaking the API key.
-    store: str | None = None
+    # Phase 15B: "pgvector" (Supabase) | "memory" (dev/test fallback).
+    vector_store_mode: str
     collections: dict[str, int]
 
 

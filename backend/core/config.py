@@ -111,17 +111,15 @@ class Settings:
         default_factory=lambda: os.environ.get("ITARS_API_TOKEN") or None
     )
 
-    # --- RAG (Phase 7): BGE-small + Qdrant, retrieval-only (routing untouched) ---
+    # --- RAG (Phase 7 / 15B): BGE-small + Supabase pgvector, retrieval-only ---
     rag_enabled: bool = field(
         default_factory=lambda: _env_bool("ITARS_RAG_ENABLED", True)
     )
-    # ":memory:" works out of the box; set a URL (e.g. http://localhost:6333)
-    # or a local path for a persistent self-hosted Qdrant.
-    qdrant_url: str = field(
-        default_factory=lambda: os.environ.get("ITARS_QDRANT_URL", ":memory:")
-    )
-    qdrant_api_key: str | None = field(
-        default_factory=lambda: os.environ.get("ITARS_QDRANT_API_KEY") or None
+    # Vector store backend: "auto" (default) uses pgvector when the database is
+    # Postgres (Supabase), else an in-memory fallback for SQLite dev/tests.
+    # Force with "pgvector" or "memory".
+    vector_store_mode: str = field(
+        default_factory=lambda: os.environ.get("ITARS_VECTOR_STORE", "auto")
     )
     rag_embedding_model: str = field(
         default_factory=lambda: os.environ.get(

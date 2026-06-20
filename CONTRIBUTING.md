@@ -20,7 +20,7 @@ recommendations:
 5. **No agentic / multi-agent / incident-correlation / root-cause /
    auto-resolution** features — explicitly excluded by the spec.
 6. **Keep the stack:** all-mpnet for routing, MarianMT for translation, FAISS
-   for duplicates; Qdrant is RAG-only.
+   for duplicates; Supabase pgvector is RAG-only.
 
 ## Setup
 

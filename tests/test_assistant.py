@@ -33,16 +33,15 @@ def _echo_gateway():
 
 
 def _rag_with(records):
-    pytest.importorskip("qdrant_client")
     from backend.rag.embeddings import RagEmbedder
     from backend.rag.service import RagService
-    from backend.rag.store import QdrantStore
+    from backend.rag.store import InMemoryVectorStore
 
-    settings = Settings(rag_embedding_dim=DIM, qdrant_url=":memory:")
+    settings = Settings(rag_embedding_dim=DIM, vector_store_mode="memory")
     service = RagService(
         settings,
         embedder=RagEmbedder(settings, embed_fn=fake_embed),
-        store=QdrantStore(settings),
+        store=InMemoryVectorStore(settings),
     )
     if records:
         service.ingest(records)

@@ -68,7 +68,7 @@ def get_rag(request: Request):
     if rag is None:
         raise HTTPException(
             status_code=503,
-            detail="RAG retrieval is not available (Qdrant/embedder not loaded).",
+            detail="RAG retrieval is not available (vector store/embedder not loaded).",
         )
     return rag
 

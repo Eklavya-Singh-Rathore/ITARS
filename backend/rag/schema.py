@@ -1,13 +1,14 @@
-"""RAG collection names and payload conventions (Phase 7).
+"""RAG collection names and payload conventions (Phase 7 / 15B).
 
-Collections mirror the Feature Report's RAG knowledge sources. Each point's
-payload always carries the ORIGINAL text (never preprocessed/lemmatized) plus
-filterable metadata.
+Collections mirror the Feature Report's RAG knowledge sources. In production each
+collection is a pgvector table of the same name in Supabase Postgres; each row
+always carries the ORIGINAL text (never preprocessed/lemmatized) plus filterable
+metadata.
 """
 
 from __future__ import annotations
 
-# Qdrant collection names (Feature Report §RAG knowledge sources).
+# Collection names == pgvector table names (Feature Report §RAG knowledge sources).
 HISTORICAL_TICKETS = "historical_tickets"
 DUPLICATE_CLUSTERS = "duplicate_clusters"
 ROUTING_HISTORY = "routing_history"

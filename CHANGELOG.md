@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased]
+
+### Phase 15B — Supabase pgvector (vector store)
+- Replaced the ephemeral in-memory Qdrant vector layer with **Supabase
+  pgvector** — RAG vectors now live in the same Postgres as the relational data,
+  so retrieval survives a container/HF-Space restart.
+- New `PgVectorStore` (cosine `<=>` over HNSW indexes) + an `InMemoryVectorStore`
+  dev/test fallback; selection is automatic from the database URL
+  (`ITARS_VECTOR_STORE=auto`).
+- 5 collection tables (`historical_tickets`, `duplicate_clusters`,
+  `routing_history`, `feedback_records`, `routing_policies`) with `vector(384)`,
+  HNSW cosine indexes, and RLS enabled — provisioned via the tracked migration
+  `phase15b_pgvector_rag_schema`.
+- `/health` now reports `database_mode` + `vector_store_mode`; `/rag/health`
+  reports `vector_store_mode`. **No Qdrant dependency remains.**
+- All existing RAG APIs/contracts preserved (Similar Tickets, AI citations,
+  recommendations, retrieval floor, metadata filtering).
+
+### Phase 15A — Supabase Postgres (relational)
+- Replaced SQLite-only persistence with Supabase Postgres
+  (`ITARS_DATABASE_URL`); SQLite remains the local-dev default. psycopg driver,
+  pooler-aware engine, tracked `phase15a_initial_itars_schema` migration.
+
 All notable changes are documented here. The project follows semantic
 versioning loosely (it's a single-stream platform, not a published library);
 each phase from the original 14-phase plan corresponds to one notable

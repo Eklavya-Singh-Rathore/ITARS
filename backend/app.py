@@ -111,12 +111,18 @@ def create_app(
             app.state.pipeline = RoutingPipeline(
                 translation_service=app.state.translation
             )
-        # RAG is optional — start without it if Qdrant/embedder are unavailable.
+        # RAG is optional — start without it if the embedder/vector store are
+        # unavailable. In production the store is Supabase pgvector; its tables
+        # are self-healed here (idempotent) on top of the tracked migration.
         if app.state.rag is None and SETTINGS.rag_enabled:
             try:
                 from .rag.service import RagService
 
                 app.state.rag = RagService()
+                try:
+                    app.state.rag.store.init_collections()
+                except Exception as exc:  # pragma: no cover - environment dependent
+                    print(f"[WARN] RAG store init skipped: {exc}")
             except Exception as exc:  # pragma: no cover - environment dependent
                 print(f"[WARN] RAG unavailable, continuing without it: {exc}")
         # LLM gateway always available (echo provider works offline).

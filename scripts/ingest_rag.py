@@ -1,12 +1,13 @@
-"""Ingest historical tickets into the Qdrant RAG index (Phase 7).
+"""Ingest historical tickets into the RAG vector store (Phase 7 / 15B).
 
 Sources:
-  * the SQLite decision log (`tickets` + latest `routing_results`) — every ticket
+  * the decision log (`tickets` + latest `routing_results`) — every ticket
     ITARS has already routed; and/or
   * the Domain-A dataset CSV (`text` column, optional `queue`/`priority`/`tags`).
 
 Embeds with BGE-small and upserts into the `historical_tickets` collection
-(idempotent). Run from `main/`:
+(idempotent). The target store follows config: Supabase pgvector when
+`ITARS_DATABASE_URL` is Postgres, else the in-memory fallback. Run from `main/`:
 
     python -m scripts.ingest_rag                 # from the decision-log DB
     python -m scripts.ingest_rag --dataset ../hf_deploy/Data/Domain-A_Dataset_Clean.csv --limit 5000
@@ -84,7 +85,7 @@ def _records_from_dataset(path: Path, limit: int | None) -> list[dict]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Ingest tickets into Qdrant RAG.")
+    parser = argparse.ArgumentParser(description="Ingest tickets into the RAG vector store.")
     parser.add_argument("--dataset", default=None, help="CSV to ingest instead of the DB.")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--batch", type=int, default=512)
@@ -110,7 +111,7 @@ def main() -> int:
 
     health = service.health()
     print(f"\nDone. {HISTORICAL_TICKETS}: {health['collections'][HISTORICAL_TICKETS]} points")
-    print(f"Qdrant: {SETTINGS.qdrant_url} · model: {SETTINGS.rag_embedding_model}")
+    print(f"Vector store: {health['vector_store_mode']} · model: {SETTINGS.rag_embedding_model}")
     return 0
 
 

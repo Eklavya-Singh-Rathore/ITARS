@@ -149,9 +149,30 @@ def translate(req: TranslateRequest, translation=Depends(get_translation)) -> Tr
     )
 
 
+def _database_mode() -> str:
+    from ..core.config import SETTINGS
+    from ..repositories.database import normalize_database_url
+
+    return (
+        "postgresql"
+        if normalize_database_url(SETTINGS.database_url).startswith("postgresql")
+        else "sqlite"
+    )
+
+
+def _vector_store_mode(request: Request) -> str:
+    rag = getattr(request.app.state, "rag", None)
+    if rag is None:
+        return "disabled"
+    return getattr(getattr(rag, "store", None), "mode", "unknown")
+
+
 @router.get("/health", response_model=HealthResponse, tags=["system"])
 def health(request: Request) -> HealthResponse:
-    """Liveness/readiness — never 503s; reports whether the pipeline is loaded."""
+    """Liveness/readiness — never 503s; reports whether the pipeline is loaded,
+    plus the persistence + vector-store modes (Phase 15A/15B)."""
+    database_mode = _database_mode()
+    vector_store_mode = _vector_store_mode(request)
     pipeline = getattr(request.app.state, "pipeline", None)
     if pipeline is None:
         return HealthResponse(
@@ -162,6 +183,8 @@ def health(request: Request) -> HealthResponse:
             duplicate_index_size=0,
             duplicate_threshold=0.0,
             encoders_loaded=False,
+            database_mode=database_mode,
+            vector_store_mode=vector_store_mode,
         )
     a = pipeline.artifacts
     engine = pipeline.duplicate_engine
@@ -175,6 +198,8 @@ def health(request: Request) -> HealthResponse:
             float(engine.duplicate_threshold) if engine is not None else 0.0
         ),
         encoders_loaded=pipeline.routing_sbert is not None,
+        database_mode=database_mode,
+        vector_store_mode=vector_store_mode,
     )
 
 

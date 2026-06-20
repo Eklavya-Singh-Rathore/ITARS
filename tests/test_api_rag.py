@@ -1,4 +1,4 @@
-"""RAG API tests — real RagService (in-memory Qdrant + fake embedder) injected."""
+"""RAG API tests — real RagService (in-memory vector store + fake embedder)."""
 
 import hashlib
 
@@ -7,7 +7,6 @@ import pytest
 
 pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
-pytest.importorskip("qdrant_client")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -15,7 +14,7 @@ from backend.app import create_app  # noqa: E402
 from backend.core.config import Settings  # noqa: E402
 from backend.rag.embeddings import RagEmbedder  # noqa: E402
 from backend.rag.service import RagService  # noqa: E402
-from backend.rag.store import QdrantStore  # noqa: E402
+from backend.rag.store import InMemoryVectorStore  # noqa: E402
 from backend.repositories import tickets as repo  # noqa: E402
 
 DIM = 384
@@ -67,11 +66,11 @@ def client(db_factory):
         repo.save_analysis(
             session, _db_result("prod0001", "production server down unreachable outage")
         )
-    settings = Settings(rag_embedding_dim=DIM, qdrant_url=":memory:")
+    settings = Settings(rag_embedding_dim=DIM, vector_store_mode="memory")
     rag = RagService(
         settings,
         embedder=RagEmbedder(settings, embed_fn=fake_embed),
-        store=QdrantStore(settings),
+        store=InMemoryVectorStore(settings),
     )
     rag.ingest(
         [

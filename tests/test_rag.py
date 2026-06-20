@@ -1,8 +1,9 @@
-"""RAG retrieval tests — in-memory Qdrant + deterministic fake embedder.
+"""RAG retrieval tests — in-memory vector store + deterministic fake embedder.
 
-No model download / no Qdrant server needed: a word-hash embedder gives
+No model download / no Postgres needed: a word-hash embedder gives
 overlap-driven cosine similarity, which is enough to exercise ingest, ranking,
-the score floor, filters, citations, and self-exclusion.
+the score floor, filters, citations, and self-exclusion. Production uses
+pgvector (Supabase) with identical cosine semantics.
 """
 
 import hashlib
@@ -10,13 +11,11 @@ import hashlib
 import numpy as np
 import pytest
 
-pytest.importorskip("qdrant_client")
-
 from backend.core.config import Settings  # noqa: E402
 from backend.rag.embeddings import RagEmbedder  # noqa: E402
 from backend.rag.schema import HISTORICAL_TICKETS  # noqa: E402
 from backend.rag.service import RagService  # noqa: E402
-from backend.rag.store import QdrantStore  # noqa: E402
+from backend.rag.store import InMemoryVectorStore  # noqa: E402
 
 DIM = 384  # match the real BGE-small dim; avoids word-hash collisions
 
@@ -49,11 +48,11 @@ TICKETS = [
 
 @pytest.fixture
 def rag():
-    settings = Settings(rag_embedding_dim=DIM, qdrant_url=":memory:")
+    settings = Settings(rag_embedding_dim=DIM, vector_store_mode="memory")
     service = RagService(
         settings,
         embedder=RagEmbedder(settings, embed_fn=fake_embed),
-        store=QdrantStore(settings),
+        store=InMemoryVectorStore(settings),
     )
     service.ingest(TICKETS)
     return service
@@ -99,11 +98,11 @@ def test_similar_excludes_self(rag):
 
 
 def test_empty_query_corpus_returns_empty():
-    settings = Settings(rag_embedding_dim=DIM, qdrant_url=":memory:")
+    settings = Settings(rag_embedding_dim=DIM, vector_store_mode="memory")
     service = RagService(
         settings,
         embedder=RagEmbedder(settings, embed_fn=fake_embed),
-        store=QdrantStore(settings),
+        store=InMemoryVectorStore(settings),
     )
     assert service.search("anything", score_floor=0.0) == []
     assert service.health()["collections"][HISTORICAL_TICKETS] == 0

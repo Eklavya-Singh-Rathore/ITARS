@@ -7,7 +7,6 @@ import pytest
 
 pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
-pytest.importorskip("qdrant_client")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -17,7 +16,7 @@ from backend.core.llm.gateway import LLMGateway  # noqa: E402
 from backend.core.llm.providers import EchoProvider  # noqa: E402
 from backend.rag.embeddings import RagEmbedder  # noqa: E402
 from backend.rag.service import RagService  # noqa: E402
-from backend.rag.store import QdrantStore  # noqa: E402
+from backend.rag.store import InMemoryVectorStore  # noqa: E402
 from backend.repositories import tickets as repo  # noqa: E402
 
 DIM = 384
@@ -55,11 +54,11 @@ def client(db_factory):
     with db_factory() as session:
         repo.save_analysis(session, _db_result("prod0001", "production server down outage"))
         repo.save_analysis(session, _db_result("bill0001", "billing question about my invoice"))
-    settings = Settings(rag_embedding_dim=DIM, qdrant_url=":memory:")
+    settings = Settings(rag_embedding_dim=DIM, vector_store_mode="memory")
     rag = RagService(
         settings,
         embedder=RagEmbedder(settings, embed_fn=fake_embed),
-        store=QdrantStore(settings),
+        store=InMemoryVectorStore(settings),
     )
     rag.ingest([{"ticket_id": "h1", "text": "production server down outage incident", "department": "Technical_Support"}])
     gateway = LLMGateway(settings, providers={"echo": EchoProvider()}, primary="echo", fallback=[])
