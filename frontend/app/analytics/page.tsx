@@ -208,7 +208,8 @@ export default function AnalyticsPage() {
         </Alert>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Top distributions — responsive 2×2 grid. */}
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Routing modes</CardTitle>

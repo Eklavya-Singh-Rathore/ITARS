@@ -1,17 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUpRight, Check, Pencil, Sparkles } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bot,
+  Check,
+  Lightbulb,
+  Pencil,
+  ScrollText,
+} from "lucide-react";
 
 import { aiSummary } from "@/lib/api";
 import type { AiResponse, TicketExplanation } from "@/lib/schemas";
 import { CitationList } from "@/components/citation-list";
 import { ConfidenceBar } from "@/components/confidence-bar";
-import { ExplainabilityPanel } from "@/components/explainability-panel";
-import { ReviewAssistant } from "@/components/review-assistant";
-import { SimilarTickets } from "@/components/similar-tickets";
 import { PriorityBadge, RouteBadge } from "@/components/status-badges";
 import { SuggestedActions } from "@/components/suggested-actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -99,7 +104,7 @@ function AiSummarySection({ ticketId, text }: { ticketId: string; text: string }
   return (
     <div className="rounded-md border border-violet-500/20 bg-violet-500/[0.03] p-3">
       <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Sparkles className="size-3.5 text-violet-500" aria-hidden />
+        <Bot className="size-3.5 text-violet-500" aria-hidden />
         AI summary{data?.provider ? ` · ${data.provider}` : ""}
       </h3>
       {state === "loading" ? (
@@ -116,9 +121,63 @@ function AiSummarySection({ ticketId, text }: { ticketId: string; text: string }
   );
 }
 
-/** The complete human-review screen (Feature Report §Human Review): ticket
- * details, AI summary, explainability, similar tickets, AI recommendation,
- * suggested actions, and the feedback form. Remounted per ticket via a key. */
+/** Evidence-layer view (no forensics): the plain explanations plus the key
+ * routing signals (gate rule, top tag votes). Surfaced behind the Evidence
+ * button to keep the review screen focused. */
+function EvidencePanel({ explanation }: { explanation: TicketExplanation }) {
+  const routingEv = (explanation.routing.evidence ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const gateRule =
+    typeof routingEv.gate_rule === "string" ? routingEv.gate_rule : null;
+  const tagVotes = Array.isArray(routingEv.tag_votes)
+    ? (routingEv.tag_votes as { tag?: string; score?: number }[])
+    : [];
+
+  return (
+    <div className="animate-rise space-y-3 rounded-md border bg-muted/20 p-3 text-sm">
+      <div className="space-y-1.5">
+        <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          Routing
+        </h4>
+        <p className="leading-relaxed">{explanation.routing.plain}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {gateRule ? (
+            <Badge variant="secondary" className="font-mono">
+              gate: {gateRule.replaceAll("_", " ")}
+            </Badge>
+          ) : null}
+          {tagVotes.slice(0, 4).map((v, i) =>
+            v.tag ? (
+              <Badge key={i} variant="secondary" className="font-mono">
+                {v.tag}
+                {typeof v.score === "number" ? ` · ${v.score.toFixed(2)}` : ""}
+              </Badge>
+            ) : null,
+          )}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          Priority
+        </h4>
+        <p className="leading-relaxed">{explanation.priority.plain}</p>
+      </div>
+      {explanation.duplicate ? (
+        <div className="space-y-1">
+          <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Duplicate
+          </h4>
+          <p className="leading-relaxed">{explanation.duplicate.plain}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The human-review screen: ticket details, AI summary, on-demand evidence and
+ * suggestions, and the feedback form. Remounted per ticket via a key. */
 export function ReviewWorkspace({
   entry,
   onSubmit,
@@ -130,6 +189,8 @@ export function ReviewWorkspace({
   const [priority, setPriority] = React.useState(entry.priority.toLowerCase());
   const [reason, setReason] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [showEvidence, setShowEvidence] = React.useState(false);
+  const [showSuggestions, setShowSuggestions] = React.useState(false);
 
   const submit = (action: ReviewAction) => {
     const finalDepartment =
@@ -172,18 +233,35 @@ export function ReviewWorkspace({
 
         <AiSummarySection ticketId={entry.ticket_id} text={entry.original_text} />
 
-        {entry.explanation_layers ? (
-          <div>
-            <h3 className="mb-2 text-xs font-medium text-muted-foreground">
-              Why this routing
-            </h3>
-            <ExplainabilityPanel explanation={entry.explanation_layers} />
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {entry.explanation_layers ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEvidence((v) => !v)}
+              className="gap-1.5"
+            >
+              <ScrollText className="size-4" aria-hidden />
+              {showEvidence ? "Hide evidence" : "Evidence"}
+            </Button>
+          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSuggestions((v) => !v)}
+            className="gap-1.5"
+          >
+            <Lightbulb className="size-4" aria-hidden />
+            {showSuggestions ? "Hide suggestions" : "Suggestions"}
+          </Button>
+        </div>
 
-        <SimilarTickets ticketId={entry.ticket_id} />
-        <ReviewAssistant ticketId={entry.ticket_id} />
-        <SuggestedActions ticketId={entry.ticket_id} />
+        {showEvidence && entry.explanation_layers ? (
+          <EvidencePanel explanation={entry.explanation_layers} />
+        ) : null}
+        {showSuggestions ? (
+          <SuggestedActions ticketId={entry.ticket_id} />
+        ) : null}
 
         <Separator />
 

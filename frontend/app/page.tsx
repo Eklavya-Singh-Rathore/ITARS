@@ -67,6 +67,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableRowsSkeleton } from "@/components/skeletons";
+import { TicketRefMenu } from "@/components/ticket-ref-menu";
 import {
   Table,
   TableBody,
@@ -273,10 +274,11 @@ export default function DashboardPage() {
                   <TableHead>Department</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead className="text-right">Confidence</TableHead>
+                  <TableHead className="w-8" />
                 </TableRow>
               </TableHeader>
               {recentLoading ? (
-                <TableRowsSkeleton rows={6} cols={5} />
+                <TableRowsSkeleton rows={6} cols={6} />
               ) : (
               <TableBody>
                 {recent.map((entry) => (
@@ -305,6 +307,9 @@ export default function DashboardPage() {
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm tabular-nums">
                       {Math.round(entry.confidence * 100)}%
+                    </TableCell>
+                    <TableCell>
+                      <TicketRefMenu ticketId={entry.ticket_id} />
                     </TableCell>
                   </TableRow>
                 ))}

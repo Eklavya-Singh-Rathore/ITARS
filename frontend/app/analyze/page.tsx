@@ -5,7 +5,7 @@ import {
   Languages,
   Loader2,
   SendHorizonal,
-  Sparkles,
+  Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -249,7 +249,7 @@ export default function AnalyzePage() {
       ) : (
         <Card className="flex min-h-[420px] items-center justify-center border-dashed">
           <CardContent className="flex flex-col items-center gap-3 text-center">
-            <Sparkles className="size-8 text-muted-foreground" aria-hidden />
+            <Workflow className="size-8 text-muted-foreground" aria-hidden />
             <p className="max-w-xs text-sm text-muted-foreground">
               The routing decision — department, priority, tags, duplicate
               match, and explanation — appears here.

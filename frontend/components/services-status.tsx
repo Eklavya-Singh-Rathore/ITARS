@@ -64,6 +64,15 @@ function aggregate(services: Service[]): State {
   return anyDown ? "degraded" : "online";
 }
 
+/** "gemini-2.5-flash" -> "Gemini 2.5 Flash". */
+function prettyModel(model?: string | null): string | undefined {
+  if (!model) return undefined;
+  return model
+    .split("-")
+    .map((p) => (/^[a-z]/.test(p) ? p[0].toUpperCase() + p.slice(1) : p))
+    .join(" ");
+}
+
 function ServiceRow({ service }: { service: Service }) {
   const style = DOT_STYLES[service.state];
   return (
@@ -96,11 +105,11 @@ function ServiceRow({ service }: { service: Service }) {
 export function ServicesStatus({ intervalMs = 30_000 }: { intervalMs?: number }) {
   const [services, setServices] = React.useState<Service[]>(() => [
     { id: "backend", name: "Backend", state: "unknown" },
+    { id: "database", name: "Database", state: "unknown" },
+    { id: "vector", name: "Vector Retrieval", state: "unknown" },
+    { id: "llm", name: "LLM", state: "unknown" },
     { id: "routing", name: "Routing Engine", state: "unknown" },
     { id: "duplicates", name: "Duplicate Detection Engine", state: "unknown" },
-    { id: "database", name: "Database", state: "unknown" },
-    { id: "gemini", name: "Gemini API", state: "unknown" },
-    { id: "rag", name: "RAG Retrieval", state: "unknown" },
   ]);
 
   const refresh = React.useCallback(async () => {
@@ -111,6 +120,9 @@ export function ServicesStatus({ intervalMs = 30_000 }: { intervalMs?: number })
       getLlmHealth(),
     ]);
     const next: Service[] = [];
+    const backendOk =
+      healthRes.status === "fulfilled" && healthRes.value.status === "ok";
+
     if (healthRes.status === "fulfilled") {
       const h = healthRes.value;
       const ok = h.status === "ok";
@@ -120,6 +132,65 @@ export function ServicesStatus({ intervalMs = 30_000 }: { intervalMs?: number })
         state: ok ? "online" : "degraded",
         detail: `v${h.version}`,
       });
+      next.push({
+        id: "database",
+        name: "Database",
+        state: ok ? "online" : "offline",
+        detail:
+          h.database_mode === "postgresql"
+            ? "Supabase PostgreSQL"
+            : h.database_mode === "sqlite"
+              ? "SQLite (dev)"
+              : "PostgreSQL",
+      });
+      next.push({
+        id: "vector",
+        name: "Vector Retrieval",
+        state:
+          h.vector_store_mode && h.vector_store_mode !== "disabled"
+            ? ok
+              ? "online"
+              : "offline"
+            : "offline",
+        detail: h.vector_store_mode === "memory" ? "in-memory (dev)" : "pgvector",
+      });
+    } else {
+      next.push({ id: "backend", name: "Backend", state: "offline" });
+      next.push({
+        id: "database",
+        name: "Database",
+        state: "offline",
+        detail: "Supabase PostgreSQL",
+      });
+      next.push({
+        id: "vector",
+        name: "Vector Retrieval",
+        state: "offline",
+        detail: "pgvector",
+      });
+    }
+
+    if (llmRes.status === "fulfilled") {
+      const l = llmRes.value;
+      const gemini = l.providers["gemini"];
+      const isPrimary = l.primary === "gemini";
+      next.push({
+        id: "llm",
+        name: "LLM",
+        state: gemini?.available ? "online" : isPrimary ? "offline" : "degraded",
+        detail: prettyModel(gemini?.model) ?? "Gemini 2.5 Flash",
+      });
+    } else {
+      next.push({
+        id: "llm",
+        name: "LLM",
+        state: backendOk ? "degraded" : "offline",
+        detail: "Gemini 2.5 Flash",
+      });
+    }
+
+    if (healthRes.status === "fulfilled") {
+      const h = healthRes.value;
       next.push({
         id: "routing",
         name: "Routing Engine",
@@ -132,48 +203,12 @@ export function ServicesStatus({ intervalMs = 30_000 }: { intervalMs?: number })
         state: h.duplicate_index_size > 0 ? "online" : "offline",
         detail: `index ${h.duplicate_index_size.toLocaleString()}`,
       });
-      // The DB is created on backend boot — its liveness mirrors the backend.
-      next.push({
-        id: "database",
-        name: "Database",
-        state: ok ? "online" : "offline",
-      });
     } else {
-      for (const id of ["backend", "routing", "duplicates", "database"] as const) {
-        next.push({
-          id,
-          name: id === "backend" ? "Backend" : id === "routing" ? "Routing Engine" : id === "duplicates" ? "Duplicate Detection Engine" : "Database",
-          state: "offline",
-        });
-      }
-    }
-    if (llmRes.status === "fulfilled") {
-      const l = llmRes.value;
-      const gemini = l.providers["gemini"];
-      const isPrimary = l.primary === "gemini";
+      next.push({ id: "routing", name: "Routing Engine", state: "offline" });
       next.push({
-        id: "gemini",
-        name: "Gemini API",
-        state: gemini?.available
-          ? "online"
-          : isPrimary
-            ? "offline"
-            : "degraded",
-        detail: gemini?.model ?? "not configured",
-      });
-      next.push({
-        id: "rag",
-        name: "RAG Retrieval",
-        // /llm/health doesn't carry RAG state directly; if the gateway answered
-        // and we previously saw the backend, the RAG layer is at least mounted.
-        state: healthRes.status === "fulfilled" ? "online" : "offline",
-      });
-    } else {
-      next.push({ id: "gemini", name: "Gemini API", state: "offline" });
-      next.push({
-        id: "rag",
-        name: "RAG Retrieval",
-        state: healthRes.status === "fulfilled" ? "online" : "offline",
+        id: "duplicates",
+        name: "Duplicate Detection Engine",
+        state: "offline",
       });
     }
     setServices(next);

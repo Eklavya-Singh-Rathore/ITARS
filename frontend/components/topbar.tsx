@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Moon, Route, Sun } from "lucide-react";
+import { Menu, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/brand-mark";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +29,10 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/analyze": {
     title: "Ticket Analysis",
     subtitle: "Submit a ticket and inspect the routing decision",
+  },
+  "/all-tickets": {
+    title: "All Tickets",
+    subtitle: "Browse, search, and filter every analyzed ticket",
   },
   "/review": {
     title: "Human Review",
@@ -91,7 +96,7 @@ export function Topbar() {
           <SheetHeader className="h-16 justify-center border-b px-5">
             <SheetTitle className="flex items-center gap-2 text-sm">
               <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Route className="size-4" aria-hidden />
+                <BrandMark className="size-4" />
               </span>
               ITARS
             </SheetTitle>

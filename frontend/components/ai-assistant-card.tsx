@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, MessageSquareText, Sparkles } from "lucide-react";
+import { Bot, Loader2, MessageSquareText } from "lucide-react";
 
 import { aiExplanation, aiSummary } from "@/lib/api";
 import type { AiResponse, AnalyzeResponse } from "@/lib/schemas";
@@ -21,7 +21,7 @@ type State = "loading" | "ready" | "unavailable";
 function AiBadge({ provider }: { provider?: string | null }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-400">
-      <Sparkles className="size-3" aria-hidden />
+      <Bot className="size-3" aria-hidden />
       AI-assisted{provider ? ` · ${provider}` : ""}
     </span>
   );
@@ -76,7 +76,7 @@ export function AiAssistantCard({ result }: { result: AnalyzeResponse }) {
     <Card className="animate-rise border-violet-500/20">
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Sparkles className="size-4 text-violet-500" aria-hidden />
+          <Bot className="size-4 text-violet-500" aria-hidden />
           AI assistant
         </CardTitle>
         {summary ? <AiBadge provider={summary.provider} /> : null}

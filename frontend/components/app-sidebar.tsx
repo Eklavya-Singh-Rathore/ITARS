@@ -5,15 +5,16 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   FileSearch,
+  Inbox,
   Info,
   LayoutDashboard,
   MessageSquareText,
-  Route,
   Settings,
   UserCheck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/brand-mark";
 
 type NavItem = {
   href: string;
@@ -29,6 +30,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/", label: "Dashboard", Icon: LayoutDashboard },
       { href: "/analyze", label: "Ticket Analysis", Icon: FileSearch },
+      { href: "/all-tickets", label: "All Tickets", Icon: Inbox },
       { href: "/review", label: "Human Review", Icon: UserCheck },
     ],
   },
@@ -107,7 +109,7 @@ function Wordmark() {
       className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
-        <Route className="size-4" aria-hidden />
+        <BrandMark className="size-5" />
       </span>
       <span className="min-w-0 leading-tight">
         <span className="block text-sm font-semibold tracking-tight">ITARS</span>
@@ -134,7 +136,7 @@ export function AppSidebar() {
       <div className="border-t border-sidebar-border px-5 py-3">
         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
           <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-          ITARS v2.0 · phase 13
+          ITARS v2.0
         </div>
       </div>
     </aside>

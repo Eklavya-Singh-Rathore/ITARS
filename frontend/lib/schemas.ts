@@ -90,6 +90,9 @@ export const HealthResponse = z.object({
   duplicate_index_size: z.number(),
   duplicate_threshold: z.number(),
   encoders_loaded: z.boolean(),
+  // Phase 15A/15B: persistence + vector-store modes (optional for back-compat).
+  database_mode: z.string().optional(),
+  vector_store_mode: z.string().optional(),
 });
 export type HealthResponse = z.infer<typeof HealthResponse>;
 
