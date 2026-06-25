@@ -1,3 +1,13 @@
+---
+title: ITARS Backend
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 8000
+pinned: false
+---
+
 # ITARS — Intelligent Ticket Auto-Routing System
 
 [![CI](https://github.com/Eklavya-Singh-Rathore/ITARS/actions/workflows/ci.yml/badge.svg)](https://github.com/Eklavya-Singh-Rathore/ITARS/actions/workflows/ci.yml)

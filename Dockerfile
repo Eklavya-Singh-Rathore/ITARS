@@ -31,6 +31,7 @@ RUN pip install -r requirements.txt
 
 COPY backend ./backend
 COPY config ./config
+COPY models /models
 
 EXPOSE 8000
 
