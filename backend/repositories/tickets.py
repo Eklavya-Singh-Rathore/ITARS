@@ -44,6 +44,11 @@ def save_analysis(session: Session, result: dict) -> str:
             translation_applied=bool(result.get("translation_applied", False)),
         )
     )
+    # Force the parent row in before any FK-bound child INSERTs. With
+    # autoflush=False the unit-of-work doesn't order the merged Ticket
+    # against the subsequent .add()s reliably on Postgres, which causes a
+    # ForeignKeyViolation on the first child INSERT.
+    session.flush()
 
     session.add(
         RoutingResult(
