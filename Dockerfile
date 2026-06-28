@@ -39,5 +39,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
     CMD curl -fsS http://localhost:8000/health || exit 1
 
-# Each uvicorn worker holds its own warm encoders + FAISS index (per-worker memory cost).
-CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Single worker: each worker holds its own warm encoders + FAISS index (per-worker
+# memory cost). Multiple workers also race on the lazy HF Hub SBERT download —
+# one creates the snapshot dir, the second opens the safetensors before it's
+# written and crashes. For higher throughput, pre-download the encoders in a
+# RUN step above and bump workers back up.
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
