@@ -9,6 +9,7 @@ pytest.importorskip("httpx")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from backend.app import create_app  # noqa: E402
+from backend.core.config import SETTINGS  # noqa: E402
 
 
 class _Engine:
@@ -157,7 +158,7 @@ def test_analytics_monitoring(client):
     hist = mon["confidence_histogram"]
     assert len(hist["bins"]) == 10
     # The fake pipeline emits gate_rule="margin_pass" for every ticket.
-    assert hist["thresholds"]["hybrid_floor"] == 0.45
+    assert hist["thresholds"]["hybrid_floor"] == SETTINGS.hybrid_floor
     assert mon["gate_rule_counts"]["margin_pass"] == 3
     # Auto tickets at 0.96 -> top bin; review ticket at 0.74 -> bin 7.
     assert hist["series"]["AUTO_ROUTE"][9] == 2

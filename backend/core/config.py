@@ -158,11 +158,16 @@ class Settings:
     )
 
     # --- Two-stage gate thresholds (app.py constants) ---
+    # Defaults recalibrated from the held-out hybrid-confidence distribution
+    # (n=1500, mean=0.963, std=0.009, min=0.878). The old 0.45 / 0.30 floors
+    # were below the observed minimum, so the gate never fired (audit defect
+    # K2). 0.94 = 1st percentile; 0.95 = 5th percentile. See
+    # scripts/recalibrate_gate.py; override via the env vars if you re-fit.
     hybrid_floor: float = field(
-        default_factory=lambda: _env_float("ITARS_HYBRID_FLOOR", 0.45)
+        default_factory=lambda: _env_float("ITARS_HYBRID_FLOOR", 0.94)
     )
     flagged_hybrid_floor: float = field(
-        default_factory=lambda: _env_float("ITARS_FLAGGED_HYBRID_FLOOR", 0.30)
+        default_factory=lambda: _env_float("ITARS_FLAGGED_HYBRID_FLOOR", 0.95)
     )
     margin_threshold: float = field(
         default_factory=lambda: _env_float("ITARS_MARGIN_THRESHOLD", 0.15)

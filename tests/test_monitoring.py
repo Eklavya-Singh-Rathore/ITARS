@@ -5,6 +5,7 @@ counts read from the persisted explanation layers, per-department reroute
 rates, the predicted->final override flow, and model-vs-reviewer agreement.
 """
 
+from backend.core.config import SETTINGS
 from backend.repositories import tickets as repo
 
 
@@ -71,7 +72,7 @@ def test_confidence_histogram_buckets_and_thresholds(db_factory):
     assert sum(hist["series"]["AUTO_ROUTE"]) == 1
     assert sum(hist["series"]["HUMAN_REVIEW"]) == 2
     # Thresholds are surfaced for the reference lines.
-    assert hist["thresholds"]["hybrid_floor"] == 0.45
+    assert hist["thresholds"]["hybrid_floor"] == SETTINGS.hybrid_floor
     assert "flagged_hybrid_floor" in hist["thresholds"]
 
 
