@@ -129,11 +129,6 @@ retraining — so these figures describe the deployed models.)
 
 ![Confusion matrix](docs/assets/confusion-matrix.png)
 
-> **UI screenshots:** the live Next.js platform (analytics dashboard with the
-> override-flow Sankey, the analyze + review workspaces) is best viewed by
-> running the app locally (`npm run dev`) or on the deployed instance — add
-> captures here once deployed.
-
 ---
 
 ## Setup
@@ -250,7 +245,6 @@ Base URL defaults to `http://localhost:8000`. Full OpenAPI at `/docs`.
 
 - [**DEPLOYMENT.md**](DEPLOYMENT.md) — the deploy runbook (Docker, Vercel, Supabase/pgvector, security)
 - [**CONTRIBUTING.md**](CONTRIBUTING.md) — ground rules, setup, branching
-- [**CHANGELOG.md**](CHANGELOG.md) — release notes
 
 ---
 
