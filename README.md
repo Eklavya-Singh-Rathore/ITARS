@@ -1,13 +1,3 @@
----
-title: ITARS Backend
-emoji: 🚀
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 8000
-pinned: false
----
-
 # ITARS — Intelligent Ticket Auto-Routing System
 
 [![CI](https://github.com/Eklavya-Singh-Rathore/ITARS/actions/workflows/ci.yml/badge.svg)](https://github.com/Eklavya-Singh-Rathore/ITARS/actions/workflows/ci.yml)
@@ -19,9 +9,6 @@ An end-to-end, **deterministic** support-ticket router with grounded AI assistan
 It ingests raw tickets and produces (a) a routing decision (department / priority /
 mode), (b) a duplicate verdict, (c) a layered explanation, (d) cited AI assistance
 for reviewers, and (e) a captured human-feedback loop that feeds retrieval back.
-
-> **Status — v1.0 (Phases 1–14 complete).** 109/111 backend tests passing,
-> frontend lint + build clean, prod LLM verified live against Gemini 2.5 Flash.
 
 ---
 
@@ -110,30 +97,6 @@ for reviewers, and (e) a captured human-feedback loop that feeds retrieval back.
 - **Grok 3-mini** (dev alternative)
 - **BGE-small-en-v1.5** (384-d retrieval embeddings)
 - **MarianMT** (Helsinki-NLP de + romance → en) for translation
-
----
-
-## Project Status
-
-| Phase | Description | Status |
-|---|---|---|
-| 1 | Backend refactor & modularisation | ✅ |
-| 2 | FastAPI API layer | ✅ |
-| 3 | Translation integration | ✅ |
-| 4 | Frontend foundation + redesign | ✅ |
-| 5 | Explainability layer | ✅ |
-| 6 | Database & persistence | ✅ |
-| 7 | RAG foundation | ✅ |
-| 8 | LLM gateway | ✅ |
-| 9 | Grounded AI assistance (live-validated against Gemini) | ✅ |
-| 10 | Human review workflow | ✅ |
-| 11 | Feedback capture + RAG feedback loop | ✅ |
-| 12 | Analytics & monitoring | ✅ |
-| 13 | UI/UX polish | ✅ |
-| 14 | Deployment readiness | ✅ |
-
-**Tests:** 109 backend passing / 2 env-skipped · frontend lint + build clean ·
-8 routes prerender.
 
 ---
 
