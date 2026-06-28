@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Inbox, Languages, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Inbox, Languages, Loader2, Search } from "lucide-react";
 
-import { getRecentTickets } from "@/lib/api";
+import { getRecentTickets, translateText } from "@/lib/api";
 import type { RecentTicket } from "@/lib/schemas";
 import { getAnalyses, onStoreChange, type StoredAnalysis } from "@/lib/session-store";
 import {
@@ -398,40 +398,7 @@ function AllTicketsInner({ highlight }: { highlight: string | null }) {
                       {expanded === r.ticket_id ? (
                         <TableRow className="bg-muted/30 hover:bg-muted/30">
                           <TableCell colSpan={COLS} className="py-3">
-                            <div className="space-y-2">
-                              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                Original text
-                              </div>
-                              <p className="max-w-3xl text-sm leading-relaxed">
-                                {r.text || "—"}
-                              </p>
-                              <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 text-xs text-muted-foreground">
-                                <span>
-                                  Confidence:{" "}
-                                  <span className="font-mono text-foreground">
-                                    {Math.round(r.confidence * 100)}%
-                                  </span>
-                                </span>
-                                <span>
-                                  Language:{" "}
-                                  <span className="text-foreground">
-                                    {r.language?.toUpperCase() ?? "—"}
-                                  </span>
-                                </span>
-                                <span>
-                                  Created:{" "}
-                                  <span className="text-foreground">
-                                    {fmtDate(r.created_at)}
-                                  </span>
-                                </span>
-                                <span>
-                                  Review:{" "}
-                                  <span className="text-foreground capitalize">
-                                    {r.review_action ?? "—"}
-                                  </span>
-                                </span>
-                              </div>
-                            </div>
+                            <ExpandedTicketDetail row={r} />
                           </TableCell>
                         </TableRow>
                       ) : null}
@@ -474,6 +441,113 @@ function AllTicketsInner({ highlight }: { highlight: string | null }) {
               Next <ChevronRight className="size-4" aria-hidden />
             </Button>
           </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Module-scoped cache: keyed by ticket id, persists across remounts within a
+// browser-session (cleared on full reload). Avoids duplicate /translate calls
+// when the user collapses and re-expands a non-English ticket.
+const translationCache = new Map<string, string>();
+
+type TranslationState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "ready"; text: string }
+  | { kind: "error"; message: string };
+
+function ExpandedTicketDetail({ row: r }: { row: Row }) {
+  const isNonEnglish = Boolean(r.language && r.language.toLowerCase() !== "en");
+  const cached = isNonEnglish ? translationCache.get(r.ticket_id) : undefined;
+
+  const [state, setState] = React.useState<TranslationState>(
+    cached ? { kind: "ready", text: cached } : { kind: "idle" },
+  );
+  const [visible, setVisible] = React.useState<boolean>(Boolean(cached));
+
+  async function handleClick() {
+    if (state.kind === "ready") {
+      setVisible((v) => !v);
+      return;
+    }
+    if (state.kind === "loading") return;
+    setState({ kind: "loading" });
+    try {
+      const result = await translateText(r.text);
+      translationCache.set(r.ticket_id, result.translated_text);
+      setState({ kind: "ready", text: result.translated_text });
+      setVisible(true);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Translation failed";
+      setState({ kind: "error", message });
+    }
+  }
+
+  const isShowing = visible && state.kind === "ready";
+  const buttonLabel =
+    state.kind === "loading"
+      ? "Translating…"
+      : isShowing
+        ? "Hide Translation"
+        : "Translate";
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          Original text
+        </div>
+        {isNonEnglish ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleClick}
+            disabled={state.kind === "loading"}
+            className="h-7 gap-1.5 px-2.5 text-xs"
+          >
+            {state.kind === "loading" ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Languages className="size-3.5" aria-hidden />
+            )}
+            {buttonLabel}
+          </Button>
+        ) : null}
+      </div>
+      <p className="max-w-3xl text-sm leading-relaxed">{r.text || "—"}</p>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 text-xs text-muted-foreground">
+        <span>
+          Confidence:{" "}
+          <span className="font-mono text-foreground">
+            {Math.round(r.confidence * 100)}%
+          </span>
+        </span>
+        <span>
+          Language:{" "}
+          <span className="text-foreground">{r.language?.toUpperCase() ?? "—"}</span>
+        </span>
+        <span>
+          Created: <span className="text-foreground">{fmtDate(r.created_at)}</span>
+        </span>
+        <span>
+          Review:{" "}
+          <span className="text-foreground capitalize">{r.review_action ?? "—"}</span>
+        </span>
+      </div>
+      {state.kind === "error" ? (
+        <p className="text-xs text-destructive">{state.message}</p>
+      ) : null}
+      {isShowing ? (
+        <div className="mt-2 max-w-3xl space-y-1.5 rounded-md border border-border/60 bg-muted/40 p-3">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Languages className="size-3" aria-hidden />
+            English Translation
+          </div>
+          <p className="text-sm leading-relaxed">
+            {(state as { kind: "ready"; text: string }).text}
+          </p>
         </div>
       ) : null}
     </div>
