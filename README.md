@@ -103,8 +103,8 @@ for reviewers, and (e) a captured human-feedback loop that feeds retrieval back.
 ## Model Performance
 
 The deterministic models are evaluated on a held-out 15% test split of the
-44,160-row Domain-A corpus. (V2 serves the same trained artifacts as V1 — no
-retraining — so these figures describe the deployed models.)
+44,160-row Domain-A corpus. The figures below describe the artifacts the
+production backend serves.
 
 | Task | Metric | Score |
 |---|---|---|
@@ -255,5 +255,7 @@ MIT — see [LICENSE](LICENSE).
 ## Author
 
 **Eklavya Singh Rathore** — MSc CSIT, Jain University, Bangalore.
-ITARS is the V2 evolution of a Master's research build; V1 was a single-screen
-Gradio demo on Hugging Face Spaces. Built portfolio-grade, on a $0 budget.
+ITARS is a Master's research project that implements an intelligent,
+AI-powered support-ticket routing platform end-to-end — from deterministic
+ML classification and duplicate detection through grounded AI assistance,
+human review, and analytics — built portfolio-grade on a $0 budget.
