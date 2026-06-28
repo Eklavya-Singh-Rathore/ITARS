@@ -70,3 +70,9 @@ Thumbs.db
 *.log
 *.bak
 *.tmp
+
+# --- Internal-only developer notes (never publish) --------------------------
+PROJECT_HANDOVER.md
+HANDOFF.md
+NOTES.md
+SCRATCH.md

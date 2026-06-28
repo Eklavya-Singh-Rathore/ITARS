@@ -286,7 +286,6 @@ Base URL defaults to `http://localhost:8000`. Full OpenAPI at `/docs`.
 ## Documentation
 
 - [**DEPLOYMENT.md**](DEPLOYMENT.md) — the deploy runbook (Docker, Vercel, Supabase/pgvector, security)
-- [**PROJECT_HANDOVER.md**](PROJECT_HANDOVER.md) — the full session continuity guide (architecture, design decisions, test breakdown, deferred items)
 - [**CONTRIBUTING.md**](CONTRIBUTING.md) — ground rules, setup, branching
 - [**CHANGELOG.md**](CHANGELOG.md) — release notes
 

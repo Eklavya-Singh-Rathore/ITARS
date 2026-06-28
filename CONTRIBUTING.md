@@ -7,8 +7,7 @@ deterministic routing guarantees are preserved.
 ## Ground rules
 
 These are **non-negotiable** invariants of the system. They come from the
-project's spec (see `PROJECT_HANDOVER.md` §21) and reflect the audit's
-recommendations:
+project's spec and reflect the audit's recommendations:
 
 1. **Routing is deterministic.** LLMs assist; they never decide. Do not let LLM
    output enter the routing path or write to the decision log.
